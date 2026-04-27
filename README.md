@@ -75,6 +75,9 @@ I believe the most impactful products are built where **innovation and trust mov
 
 ## 📫 Let's Connect
 
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Winston%20Xu-blue?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/winstoncxu/)
+
+
 - Open to collaboration on:
   - AI + Privacy initiatives  
   - Product strategy consulting  
