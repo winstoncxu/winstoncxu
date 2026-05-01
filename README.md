@@ -2,6 +2,8 @@
 
 **Product Management Executive | AI-Driven Personalization & Privacy | Ex-Meta | IAPP Board Member | Building Trust-Centric Digital Experiences**
 
+![Typing SVG](https://readme-typing-svg.herokuapp.com/?lines=AI+%2B+Privacy+Product+Leader;Building+Trust-Centric+Systems;Scaling+Personalization+Globally)
+
 ---
 
 ## 🚀 About Me
@@ -88,3 +90,5 @@ I believe the most impactful products are built where **innovation and trust mov
 ⭐️ *Building the future of digital products with trust at the core.*
 
 ![Profile Views](https://komarev.com/ghpvc/?username=winstoncxu&label=Profile%20views&color=0e75b6&style=flat)
+
+
