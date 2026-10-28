@@ -1,0 +1,456 @@
+# =============================================================================
+#  Home Hub — main Home Assistant dashboard
+# =============================================================================
+#  Built only from core Home Assistant cards (no HACS / custom cards needed).
+#  Uses the "sections" view layout, so it reflows from a phone to a wall tablet.
+#
+#  HOW TO USE
+#    Settings → Dashboards → + Add dashboard → "New dashboard from scratch"
+#    Open it → pencil (Edit) → ⋮ → Raw configuration editor → paste this file.
+#
+#  PLACEHOLDER ENTITIES
+#    Every entity_id below is a placeholder. Swap each one for your own
+#    (Settings → Devices & services → Entities). Cards whose entity doesn't
+#    exist yet show a yellow warning; delete the ones you don't need.
+#
+#    person.winston                    → your person (install the Companion app)
+#    weather.forecast_home             → created automatically during onboarding
+#    sensor.indoor_temperature         → any temperature sensor
+#    sensor.indoor_humidity            → any humidity sensor
+#    light.*  / switch.* / fan.*       → your lights, plugs and fans
+#    climate.thermostat                → your thermostat
+#    lock.front_door                   → your smart lock
+#    alarm_control_panel.home_alarm    → alarm (or Manual alarm helper)
+#    camera.front_door                 → your doorbell / camera
+#    binary_sensor.*_door / *_motion   → door, window and motion sensors
+#    media_player.living_room_tv       → TV / speaker
+#    scene.*                           → scenes you create in Settings → Scenes
+#    vacuum.robot_vacuum               → robot vacuum
+#
+#  The Home view's status summary and the "All off" / "Lock up" buttons use
+#  templates and `entity_id: all`, so they work with no changes at all.
+# =============================================================================
+
+title: Home Hub
+views:
+  # ---------------------------------------------------------------------------
+  #  HOME — the at-a-glance hub
+  # ---------------------------------------------------------------------------
+  - title: Home
+    path: home
+    icon: mdi:home-variant
+    type: sections
+    max_columns: 4
+    badges:
+      - type: entity
+        entity: person.winston
+        show_name: false
+        show_entity_picture: true
+      - type: entity
+        entity: weather.forecast_home
+      - type: entity
+        entity: sensor.indoor_temperature
+        name: Inside
+        show_name: true
+      - type: entity
+        entity: sensor.indoor_humidity
+      - type: entity
+        entity: alarm_control_panel.home_alarm
+    sections:
+      # --- Greeting + live house status --------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Welcome home
+            heading_style: title
+            icon: mdi:home-heart
+          - type: markdown
+            text_only: true
+            content: |
+              {% set h = now().hour %}
+              {% set greeting = 'Good morning' if h < 12 else 'Good afternoon' if h < 18 else 'Good evening' %}
+              {% set lights_on = states.light | selectattr('state', 'eq', 'on') | list | count %}
+              {% set unlocked = states.lock | selectattr('state', 'eq', 'unlocked') | list | count %}
+              {% set open_doors = states.binary_sensor
+                   | selectattr('attributes.device_class', 'defined')
+                   | selectattr('attributes.device_class', 'in', ['door', 'window', 'garage_door', 'opening'])
+                   | selectattr('state', 'eq', 'on') | list %}
+              ## {{ greeting }}, Winston
+
+              {{ now().strftime('%A, %B %-d') }}
+
+              💡 **{{ lights_on }}** {{ 'light' if lights_on == 1 else 'lights' }} on ·
+              🔐 **{{ unlocked }}** unlocked ·
+              🚪 **{{ open_doors | count }}** open
+              {% if open_doors | count > 0 %}
+
+              ⚠️ Open: {{ open_doors | map(attribute='name') | join(', ') }}
+              {% endif %}
+          - type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: daily
+            show_current: true
+            show_forecast: true
+
+      # --- One-tap actions ---------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Quick actions
+            icon: mdi:lightning-bolt
+          - type: button
+            name: All lights off
+            icon: mdi:lightbulb-group-off
+            show_state: false
+            grid_options: { columns: 6, rows: 2 }
+            tap_action:
+              action: perform-action
+              perform_action: light.turn_off
+              target:
+                entity_id: all
+          - type: button
+            name: Lock up
+            icon: mdi:shield-lock
+            show_state: false
+            grid_options: { columns: 6, rows: 2 }
+            tap_action:
+              action: perform-action
+              perform_action: lock.lock
+              target:
+                entity_id: all
+              confirmation:
+                text: Lock every door?
+          - type: button
+            name: Movie night
+            icon: mdi:movie-open
+            show_state: false
+            grid_options: { columns: 6, rows: 2 }
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.movie_night
+          - type: button
+            name: Good night
+            icon: mdi:weather-night
+            show_state: false
+            grid_options: { columns: 6, rows: 2 }
+            tap_action:
+              action: perform-action
+              perform_action: scene.turn_on
+              target:
+                entity_id: scene.good_night
+
+      # --- Favourite devices -------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Favorites
+            icon: mdi:star
+          - type: tile
+            entity: light.living_room
+            features_position: bottom
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.kitchen
+            features_position: bottom
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: climate.thermostat
+            features_position: bottom
+            features:
+              - type: target-temperature
+          - type: tile
+            entity: lock.front_door
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: vacuum.robot_vacuum
+            grid_options: { columns: 6 }
+          - type: media-control
+            entity: media_player.living_room_tv
+
+      # --- Front door camera ---------------------------------------------------
+      - type: grid
+        cards:
+          - type: heading
+            heading: Front door
+            icon: mdi:doorbell-video
+            badges:
+              - type: entity
+                entity: lock.front_door
+              - type: entity
+                entity: binary_sensor.front_door
+          - type: picture-entity
+            entity: camera.front_door
+            camera_view: auto
+            show_name: false
+            show_state: false
+
+  # ---------------------------------------------------------------------------
+  #  LIGHTS — room by room
+  # ---------------------------------------------------------------------------
+  - title: Lights
+    path: lights
+    icon: mdi:lightbulb-group
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Living room
+            icon: mdi:sofa
+          - type: tile
+            entity: light.living_room
+            features_position: bottom
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.floor_lamp
+            features_position: bottom
+            features:
+              - type: light-brightness
+              - type: light-color-temp
+          - type: tile
+            entity: fan.living_room
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: switch.christmas_tree
+            grid_options: { columns: 6 }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Kitchen & dining
+            icon: mdi:silverware-fork-knife
+          - type: tile
+            entity: light.kitchen
+            features_position: bottom
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.dining_room
+            features_position: bottom
+            features:
+              - type: light-brightness
+      - type: grid
+        cards:
+          - type: heading
+            heading: Bedrooms
+            icon: mdi:bed
+          - type: tile
+            entity: light.primary_bedroom
+            features_position: bottom
+            features:
+              - type: light-brightness
+          - type: tile
+            entity: light.office
+            features_position: bottom
+            features:
+              - type: light-brightness
+      - type: grid
+        cards:
+          - type: heading
+            heading: Outside
+            icon: mdi:pine-tree
+          - type: tile
+            entity: light.porch
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: light.backyard
+            grid_options: { columns: 6 }
+
+  # ---------------------------------------------------------------------------
+  #  CLIMATE
+  # ---------------------------------------------------------------------------
+  - title: Climate
+    path: climate
+    icon: mdi:thermostat
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Thermostat
+            icon: mdi:home-thermometer
+          - type: thermostat
+            entity: climate.thermostat
+            features:
+              - type: climate-hvac-modes
+                hvac_modes: [heat, cool, heat_cool, "off"]
+      - type: grid
+        cards:
+          - type: heading
+            heading: Indoor conditions
+            icon: mdi:water-percent
+          - type: tile
+            entity: sensor.indoor_temperature
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: sensor.indoor_humidity
+            grid_options: { columns: 6 }
+          - type: history-graph
+            title: Last 24 hours
+            hours_to_show: 24
+            entities:
+              - entity: sensor.indoor_temperature
+              - entity: sensor.indoor_humidity
+      - type: grid
+        cards:
+          - type: heading
+            heading: Outside
+            icon: mdi:weather-partly-cloudy
+          - type: weather-forecast
+            entity: weather.forecast_home
+            forecast_type: hourly
+            show_current: true
+            show_forecast: true
+
+  # ---------------------------------------------------------------------------
+  #  SECURITY
+  # ---------------------------------------------------------------------------
+  - title: Security
+    path: security
+    icon: mdi:shield-home
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Alarm
+            icon: mdi:shield-lock
+          - type: alarm-panel
+            entity: alarm_control_panel.home_alarm
+            states: [arm_home, arm_away, arm_night]
+      - type: grid
+        cards:
+          - type: heading
+            heading: Doors & locks
+            icon: mdi:door
+          - type: tile
+            entity: lock.front_door
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: lock.back_door
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: binary_sensor.front_door
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: binary_sensor.back_door
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: binary_sensor.garage_door
+            grid_options: { columns: 6 }
+          - type: tile
+            entity: binary_sensor.hallway_motion
+            grid_options: { columns: 6 }
+      - type: grid
+        cards:
+          - type: heading
+            heading: Cameras
+            icon: mdi:cctv
+          - type: picture-entity
+            entity: camera.front_door
+            camera_view: auto
+          - type: picture-entity
+            entity: camera.backyard
+            camera_view: auto
+          - type: logbook
+            title: Recent activity
+            hours_to_show: 12
+            entities:
+              - lock.front_door
+              - lock.back_door
+              - binary_sensor.front_door
+              - binary_sensor.back_door
+              - binary_sensor.garage_door
+
+  # ---------------------------------------------------------------------------
+  #  ENERGY — needs Settings → Dashboards → Energy to be configured first
+  # ---------------------------------------------------------------------------
+  - title: Energy
+    path: energy
+    icon: mdi:lightning-bolt-circle
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Today
+            icon: mdi:flash
+          - type: energy-date-selection
+          - type: energy-distribution
+            link_dashboard: true
+      - type: grid
+        cards:
+          - type: heading
+            heading: Usage
+            icon: mdi:chart-bar
+          - type: energy-usage-graph
+
+  # ---------------------------------------------------------------------------
+  #  SYSTEM — health of the Home Assistant Green itself
+  #  Enable the "System Monitor" integration to get the CPU/RAM/disk sensors.
+  # ---------------------------------------------------------------------------
+  - title: System
+    path: system
+    icon: mdi:server
+    type: sections
+    max_columns: 3
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Home Assistant Green
+            icon: mdi:raspberry-pi
+          - type: gauge
+            entity: sensor.system_monitor_processor_use
+            name: CPU
+            grid_options: { columns: 4, rows: 2 }
+            severity: { green: 0, yellow: 60, red: 85 }
+          - type: gauge
+            entity: sensor.system_monitor_memory_usage
+            name: Memory
+            grid_options: { columns: 4, rows: 2 }
+            severity: { green: 0, yellow: 70, red: 90 }
+          - type: gauge
+            entity: sensor.system_monitor_disk_usage
+            name: Disk
+            grid_options: { columns: 4, rows: 2 }
+            severity: { green: 0, yellow: 70, red: 90 }
+          - type: tile
+            entity: sensor.system_monitor_processor_temperature
+            name: CPU temperature
+          - type: tile
+            entity: sensor.system_monitor_last_boot
+            name: Last boot
+      - type: grid
+        cards:
+          - type: heading
+            heading: Updates
+            icon: mdi:update
+          - type: tile
+            entity: update.home_assistant_core_update
+            name: Core
+          - type: tile
+            entity: update.home_assistant_operating_system_update
+            name: Operating system
+          - type: tile
+            entity: update.home_assistant_supervisor_update
+            name: Supervisor
+      - type: grid
+        cards:
+          - type: heading
+            heading: Backups
+            icon: mdi:backup-restore
+          - type: tile
+            entity: sensor.backup_last_successful_automatic_backup
+            name: Last successful backup
+          - type: tile
+            entity: sensor.backup_next_scheduled_automatic_backup
+            name: Next scheduled backup
