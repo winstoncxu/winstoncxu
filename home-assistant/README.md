@@ -1,13 +1,19 @@
 # 🏠 Home Hub: Home Assistant Green setup
 
-This folder has a main hub dashboard for Home Assistant
-([`dashboards/main-hub.yaml`](dashboards/main-hub.yaml)) and a short setup guide for a
-new **Home Assistant Green**.
+This folder has two interfaces for Home Assistant, plus a short setup guide for a new
+**Home Assistant Green**:
 
-The dashboard uses only built-in cards, so it works on a fresh install with no HACS or
-custom frontend resources.
+1. **[Home Hub panel](home-hub/)** (recommended): a custom wall-panel interface with a
+   room list, light tiles, live cameras, security, a big-clock Ambient view, energy and a
+   calendar. It installs as a sidebar panel.
+   [![Home Hub](home-hub/screenshots/controls.jpg)](home-hub/)
+2. **[Lovelace dashboard](dashboards/main-hub.yaml)**: a simpler dashboard made only from
+   built-in cards. Use it as a fallback or a phone view.
 
-## What's in the dashboard
+Set up the Green first (steps 1–2 below), then follow the
+[Home Hub install guide](home-hub/README.md#install-on-your-home-assistant-green).
+
+## What's in the Lovelace dashboard
 
 | View | What it shows |
 | --- | --- |
@@ -50,14 +56,14 @@ wall-mounted tablet.
 - *(Optional)* **Install the Studio Code Server or File editor add-on** if you want to
   edit YAML on the Green directly.
 
-## 3. Install the Home Hub dashboard
+## 3. Install the Lovelace dashboard (optional)
 
 1. **Settings → Dashboards → + Add dashboard → New dashboard from scratch.**
-   Name it `Home Hub` and pick an icon such as `mdi:home-variant`.
+   Name it `Home Dashboard` and pick an icon such as `mdi:home-variant`.
 2. Open the new dashboard, click the **pencil (Edit)**, then **⋮ → Raw configuration editor**.
 3. Delete what's there, paste the full contents of
    [`dashboards/main-hub.yaml`](dashboards/main-hub.yaml), and click **Save**.
-4. *(Optional)* Make it the default: Settings → Dashboards → select *Home Hub* → **Set as default**.
+4. *(Optional)* Make it the default: Settings → Dashboards → select it → **Set as default**.
 
 ## 4. Swap in your own entities
 

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home Hub Demo</title>
+<style>html, body { margin: 0; background: #F2EFE9; }</style>
+</head>
+<body>
+<!--
+  Demo of the Home Hub panel with a fake Home Assistant behind it.
+  Open this file through any static server (e.g. `python3 -m http.server`)
+  and tap around: lights, locks and covers respond, and the brightness
+  sliders work. Add ?view=ambient or ?view=calendar to start on another view,
+  and ?theme=dark for the dark theme.
+-->
+<home-hub-panel></home-hub-panel>
+<script type="module">
+import "./home-hub.js";
+
+const params = new URLSearchParams(location.search);
+const now = new Date();
+const today0 = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+const HOUR = 3600e3;
+const DAY = 24 * HOUR;
+const iso = (t) => new Date(t).toISOString();
+const ymd = (t) => { const d = new Date(t); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+
+/* --- placeholder camera "photos" ---------------------------------------- */
+function rand(seed) { return () => ((seed = (seed * 16807) % 2147483647) / 2147483647); }
+function scene(seed, sky, ground, leaves, extra = "") {
+  const r = rand(seed);
+  let blobs = "";
+  for (let i = 0; i < 26; i++) {
+    const c = leaves[Math.floor(r() * leaves.length)];
+    blobs += `<circle cx="${(r() * 340 - 10).toFixed(0)}" cy="${(r() * 95 + 5).toFixed(0)}" r="${(r() * 26 + 10).toFixed(0)}" fill="${c}" opacity="${(0.55 + r() * 0.4).toFixed(2)}"/>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+    <defs><linearGradient id="s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}"/></linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${ground[0]}"/><stop offset="1" stop-color="${ground[1]}"/></linearGradient>
+    <filter id="b"><feGaussianBlur stdDeviation="5"/></filter><filter id="n"><feTurbulence baseFrequency=".9" numOctaves="2"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .08 0"/></filter></defs>
+    <rect width="320" height="180" fill="url(#s)"/><g filter="url(#b)">${blobs}</g>
+    <path d="M0 112 L320 100 L320 180 L0 180Z" fill="url(#g)"/>${extra}
+    <rect width="320" height="180" filter="url(#n)"/></svg>`;
+  return "data:image/svg+xml," + encodeURIComponent(svg);
+}
+const autumn = ["#C8822F", "#E0A040", "#8E5A2B", "#5E6B3A", "#3F4B2E", "#B5562C", "#D9B45A"];
+const evergreen = ["#2F3D2C", "#3B4A33", "#24301F", "#4E5A3A"];
+const CAMS = {
+  doorbell: scene(11, ["#B9B8B0", "#8F938A"], ["#5F5D58", "#3B3A37"], [...autumn, ...evergreen], `<rect x="40" y="0" width="22" height="180" fill="#5A3F33"/><rect x="0" y="0" width="40" height="180" fill="#6E4A3A"/>`),
+  driveway: scene(23, ["#A7AAA5", "#7E827C"], ["#45474A", "#2E3033"], autumn, `<path d="M90 150 Q110 92 190 96 Q252 100 268 150 Z" fill="#1F2A3F"/><path d="M128 110 Q160 98 214 104 L222 124 L122 126Z" fill="#9FB0BE" opacity=".6"/>`),
+  deck: scene(37, ["#8C8F85", "#6D7268"], ["#6B4A35", "#4B3324"], [...evergreen, "#7C8B4A", "#A65A3A"], `<rect x="120" y="120" width="80" height="26" rx="4" fill="#3E4A55"/><circle cx="235" cy="140" r="12" fill="#B83A2E"/>`),
+  garage: scene(41, ["#D8D6CE", "#B9B6AC"], ["#8E8A82", "#6F6B64"], ["#3A3A38", "#555"], `<rect x="40" y="20" width="240" height="70" fill="#E7E5DF" opacity=".7"/><circle cx="210" cy="125" r="22" fill="#2B2B2B"/><circle cx="210" cy="125" r="9" fill="#777"/>`),
+  package: scene(53, ["#A9ABA3", "#868A82"], ["#5A5853", "#3E3D3A"], autumn),
+  side_patio: scene(67, ["#9DA197", "#7A7F75"], ["#77736B", "#55524C"], evergreen),
+  family_room: scene(71, ["#D9CBB5", "#BFAE95"], ["#8C7B66", "#6E5F4D"], ["#E6D6BC", "#A28C70", "#6B5A47"]),
+  living_room: scene(83, ["#D4C7B4", "#B8A994"], ["#7F6E5C", "#5F5244"], ["#EADBC2", "#9C876C", "#4E4338"]),
+  speakeasy: scene(97, ["#4A3A30", "#2E241E"], ["#3B2C22", "#21180F"], ["#C08A3E", "#7A5230", "#2C211A"]),
+  kids_cam: scene(101, ["#CFC9C0", "#B3ADA3"], ["#9A9389", "#7D776E"], ["#8FA7C2", "#E3C76A", "#C98B7A"]),
+};
+
+/* --- fake registry + states -------------------------------------------- */
+const states = {};
+const entities = {};
+const areas = {};
+const set = (id, state, attributes = {}, area) => {
+  states[id] = { entity_id: id, state, attributes, last_changed: iso(Date.now() - 13 * HOUR), last_updated: iso(Date.now()) };
+  if (area) entities[id] = { entity_id: id, area_id: area };
+};
+const room = (id, name, temp, lights) => {
+  areas[id] = { area_id: id, name };
+  if (temp != null) set(`sensor.${id}_temperature`, String(temp), { friendly_name: `${name} Temperature`, device_class: "temperature", unit_of_measurement: "°F" }, id);
+  for (const [n, on, b] of lights)
+    set(`light.${id}_${n.toLowerCase().replace(/\W+/g, "_")}`, on ? "on" : "off", { friendly_name: `${name} ${n}`, supported_color_modes: b === false ? ["onoff"] : ["brightness"], brightness: on && b !== false ? Math.round((b ?? 70) * 2.55) : null }, id);
+};
+room("speakeasy", "Speakeasy", null, [["Main Lights"], ["Pendants"], ["Sconces"], ["Floor Lamp"], ["Bar Cellar Lights"]]);
+room("family_room", "Family Room", 71, [["Ceiling", true, 80], ["Reading Lamp"], ["Shelves"]]);
+room("kitchen", "Kitchen", null, [["Pendants", true, 100], ["Under Cabinet"], ["Ceiling"]]);
+room("living_room", "Living Room", null, [["Ceiling"], ["Floor Lamp"], ["Accent"]]);
+room("dining_room", "Dining Room", 71, [["Chandelier"], ["Buffet Lamp"]]);
+room("office", "Office", 67, [["Desk Lamp"], ["Ceiling"]]);
+room("primary_bedroom", "Primary Bedroom", 70, [["Ceiling"], ["Bedside Left"], ["Bedside Right"]]);
+room("kids_room", "Kids Room", 72, [["Ceiling"], ["Night Light"]]);
+room("stairs_hall", "Stairs & Hall", null, [["Stair Lights", false, false], ["Hall Ceiling"]]);
+room("outside", "Outside", null, [["Porch", false, false], ["Driveway", false, false], ["Deck String Lights", false, false]]);
+room("guest_bedroom", "Guest Bedroom", null, [["Lamp", true, 40], ["Ceiling"]]);
+room("primary_bath", "Primary Bath", 69, [["Vanity"], ["Shower"]]);
+room("den_utility", "Den & Utility", null, [["Den Lamp"], ["Utility"]]);
+
+set("weather.forecast_home", "rainy", { friendly_name: "Home", temperature: 50, temperature_unit: "°F" });
+set("sun.sun", "above_horizon", { next_setting: iso(today0 + 18 * HOUR + 2 * 60e3) });
+set("sensor.home_power", "2040", { friendly_name: "Home Power", unit_of_measurement: "W", device_class: "power" });
+set("sensor.energy_today", "99.4", { friendly_name: "Energy Today", unit_of_measurement: "kWh", device_class: "energy" });
+set("lock.side_door", "locked", { friendly_name: "Side door" });
+set("lock.garage_entry", "locked", { friendly_name: "Garage entry" });
+set("cover.left_garage_door", "closed", { friendly_name: "Left garage door", device_class: "garage" });
+set("cover.right_garage_door", "closed", { friendly_name: "Right garage door", device_class: "garage" });
+set("cover.front_gate", "open", { friendly_name: "Front gate", device_class: "gate" });
+set("climate.downstairs", "heat", { friendly_name: "Downstairs", current_temperature: 72, hvac_action: "heating" });
+set("binary_sensor.car_plugged_in", "on", { friendly_name: "Car", device_class: "plug" });
+set("sensor.car_charging_state", "Charged", { friendly_name: "Car charging" });
+set("valve.main_water", "closed", { friendly_name: "Main water" });
+set("sensor.water_today", "11.0", { friendly_name: "Water today", unit_of_measurement: "gal" });
+set("binary_sensor.driveway_person_detected", "off", { friendly_name: "Driveway person", device_class: "occupancy" });
+const camNames = { doorbell: "Doorbell", driveway: "Driveway", deck: "Deck", garage: "Garage", package: "Package", side_patio: "Side Patio", family_room: "Family Room", living_room: "Living Room", speakeasy: "Speakeasy", kids_cam: "Kids Cam" };
+for (const [id, name] of Object.entries(camNames))
+  set(`camera.${id}`, "streaming", { friendly_name: name, entity_picture: CAMS[id], supported_features: 0 });
+
+/* --- fake history + calendars ----------------------------------------- */
+function powerStats() {
+  const out = [];
+  for (let t = today0 - DAY; t < Date.now(); t += 5 * 60e3) {
+    const h = ((t - today0 + DAY) % DAY) / HOUR;
+    const isToday = t >= today0;
+    let v;
+    if (isToday) v = h < 0.5 ? 15 : h < 1.5 ? 14.6 : h < 6.2 ? 14 - (h - 1.5) * 0.02 : h < 7.5 ? 14 - (h - 6.2) * 9 : h < 8.5 ? 2.4 : 1.8;
+    else v = h < 1 ? 3 : h < 18 ? 1.1 + Math.sin(h * 1.3) * 0.35 + (h > 12 && h < 16 ? 0.6 : 0) : h < 21 ? 1.2 + Math.max(0, (h - 20)) * 2 : 15 + Math.sin(h) * 0.5;
+    out.push({ start: t, end: t + 5 * 60e3, mean: Math.max(0.3, v + Math.sin(t / 7e5) * 0.15) });
+  }
+  return out;
+}
+const at = (dayOffset, h, m = 0) => iso(today0 + dayOffset * DAY + h * HOUR + m * 60e3);
+const EVENTS = {
+  "calendar.family": [
+    { summary: "Josh in CA", start: { date: ymd(today0) }, end: { date: ymd(today0 + 2 * DAY) } },
+    { summary: "Pumpkin carving", start: { dateTime: at(0, 15) }, end: { dateTime: at(0, 16, 30) }, location: "Back deck" },
+    { summary: "Piano lesson", start: { dateTime: at(1, 16) }, end: { dateTime: at(1, 17) } },
+    { summary: "Recycling pickup", start: { date: ymd(today0 + 2 * DAY) }, end: { date: ymd(today0 + 3 * DAY) } },
+    { summary: "Dinner with the Parks", start: { dateTime: at(3, 18, 30) }, end: { dateTime: at(3, 21) }, location: "Canlis" },
+    { summary: "Halloween party", start: { dateTime: at(5, 17) }, end: { dateTime: at(5, 20) } },
+  ],
+  "calendar.work": [
+    { summary: "Quarterly planning", start: { dateTime: at(1, 9) }, end: { dateTime: at(1, 11) } },
+    { summary: "1:1 with Priya", start: { dateTime: at(2, 13) }, end: { dateTime: at(2, 13, 30) } },
+    { summary: "Product review", start: { dateTime: at(4, 10) }, end: { dateTime: at(4, 11) } },
+  ],
+  "calendar.seahawks": [
+    { summary: "Seahawks vs Chiefs", start: { dateTime: at(0, 17, 20) }, end: { dateTime: at(0, 20, 30) } },
+  ],
+};
+
+/* --- the fake `hass` object ----------------------------------------- */
+const panel = document.querySelector("home-hub-panel");
+let hass;
+function push() {
+  hass = { ...hass, states: { ...states } };
+  panel.hass = hass;
+}
+function apply(domain, service, data) {
+  const ids = data.entity_id === "all" ? Object.keys(states).filter((id) => id.startsWith(domain + ".")) : [].concat(data.entity_id);
+  for (const id of ids) {
+    const s = states[id];
+    if (!s) continue;
+    const d = id.split(".")[0];
+    let next = s.state;
+    if (service === "toggle") next = s.state === "on" ? "off" : "on";
+    if (service === "turn_on") next = "on";
+    if (service === "turn_off") next = "off";
+    if (service === "lock") next = "locked";
+    if (service === "unlock") next = "unlocked";
+    if (service === "open_cover") next = "open";
+    if (service === "close_cover") next = "closed";
+    const attributes = { ...s.attributes };
+    if (d === "light") {
+      const dim = attributes.supported_color_modes?.includes("brightness");
+      attributes.brightness = next === "on" && dim ? (data.brightness_pct ? Math.round(data.brightness_pct * 2.55) : attributes.brightness || 178) : null;
+    }
+    if (d === "scene" || d === "script") continue;
+    states[id] = { ...s, state: next, attributes, last_changed: iso(Date.now()) };
+  }
+  push();
+}
+hass = {
+  states: { ...states },
+  entities,
+  devices: {},
+  areas,
+  themes: { darkMode: false },
+  config: { unit_system: { temperature: "°F" } },
+  callService: async (domain, service, data) => apply(domain, service, data),
+  callApi: async (_m, path) => EVENTS[path.split("?")[0].replace("calendars/", "")] || [],
+  callWS: async (msg) => {
+    if (msg.type === "recorder/statistics_during_period") return { "sensor.home_power": powerStats() };
+    if (msg.type === "history/history_during_period") return { "sensor.energy_today": [{ s: "16.9", lu: Date.now() / 1000 - DAY / 1000 }] };
+    if (msg.type === "logbook/get_events")
+      return [
+        { when: (today0 + 7 * HOUR) / 1000, entity_id: "cover.front_gate", state: "open", name: "Front gate" },
+        { when: (today0 - 1 * HOUR) / 1000, entity_id: "cover.front_gate", state: "closed", name: "Front gate" },
+        { when: (today0 - 2 * HOUR - 10 * 60e3) / 1000, entity_id: "lock.side_door", state: "locked", name: "Side door" },
+      ];
+    throw new Error(`demo: ${msg.type} not mocked`);
+  },
+  connection: {
+    subscribeMessage: async (cb) => {
+      setTimeout(() => cb({ forecast: [{ datetime: iso(today0), condition: "rainy", temperature: 53, templow: 44 }] }), 0);
+      return () => {};
+    },
+  },
+};
+
+panel.panel = {
+  config: {
+    theme: params.get("theme") || "light",
+    default_view: params.get("view") || "controls",
+    idle_minutes: 0,
+    power: "sensor.home_power",
+    energy_today: "sensor.energy_today",
+    rooms: ["speakeasy", "family_room", "kitchen", "living_room", "dining_room", "office", "primary_bedroom", "kids_room", "stairs_hall", "outside", "guest_bedroom", "primary_bath", "den_utility"],
+    cameras: [
+      { entity: "camera.doorbell", featured: true },
+      { entity: "camera.driveway", featured: true, detection: "binary_sensor.driveway_person_detected" },
+      "camera.deck", "camera.garage", "camera.package", "camera.side_patio", "camera.family_room", "camera.living_room", "camera.speakeasy", "camera.kids_cam",
+    ],
+    security: ["lock.side_door", "lock.garage_entry", "cover.left_garage_door", "cover.right_garage_door", "cover.front_gate"],
+    status: [
+      { type: "locks" },
+      { type: "garage" },
+      { entity: "cover.front_gate" },
+      { type: "climate", entity: "climate.downstairs", detail: "Family, Dining, Powder" },
+      { entity: "binary_sensor.car_plugged_in", text: { on: "Car plugged in", off: "Car unplugged" }, detail_entity: "sensor.car_charging_state", icon: "bolt" },
+      { entity: "valve.main_water", text: { open: "Water on", closed: "Water off" }, detail_entity: "sensor.water_today", detail_suffix: " today", alert: false },
+    ],
+    activity: ["cover.front_gate", "lock.side_door", "lock.garage_entry"],
+    actions: [{ name: "Goodnight downstairs", icon: "moon", entity: "script.goodnight_downstairs" }],
+    calendars: ["calendar.family", "calendar.work"],
+    next_up_calendars: ["calendar.family"],
+    highlight_calendars: ["calendar.seahawks"],
+  },
+};
+panel.hass = hass;
+</script>
+</body>
+</html>

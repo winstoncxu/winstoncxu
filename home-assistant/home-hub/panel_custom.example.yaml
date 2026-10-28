@@ -1,0 +1,101 @@
+# Paste into /config/configuration.yaml, then restart Home Assistant.
+# Every entity below is an example. Replace them with your own
+# (Settings → Devices & services → Entities). Anything you leave out is
+# auto-discovered or hidden, so you can start with just the first block.
+
+panel_custom:
+  - name: home-hub-panel
+    url_path: home-hub
+    sidebar_title: Home Hub
+    sidebar_icon: mdi:home-variant
+    module_url: /local/home-hub/home-hub.js?v=1   # bump ?v= after updating the file
+    require_admin: false
+    config:
+      theme: light            # light | dark | auto (follows your HA theme)
+      idle_minutes: 5         # go to Ambient after 5 min untouched; 0 = never
+      clock_24h: false
+
+      # --- Energy (Ambient "Today" panel + header) -------------------------
+      power: sensor.home_power            # current power in W or kW
+      energy_today: sensor.energy_today   # kWh used today (see utility_meter below)
+
+      # --- Rooms ------------------------------------------------------------
+      # Rooms come from your Areas. List them to set the order (others are
+      # hidden), or leave this out to show every area that has lights.
+      rooms:
+        - Living Room
+        - Kitchen
+        - Dining Room
+        - Office
+        - Primary Bedroom
+        - Outside
+      # room_domains: [light, switch, fan]   # also show switches and fans as tiles
+
+      # Buttons under the room list (scenes, scripts or buttons).
+      actions:
+        - name: Goodnight downstairs
+          icon: moon
+          entity: script.goodnight_downstairs
+        - name: Movie night
+          icon: scene
+          entity: scene.movie_night
+
+      # --- Cameras ------------------------------------------------------------
+      # The first four appear as tiles, the rest as chips. `featured` ones are
+      # shown on Ambient. `detection` shows "Person · 13 hr ago" in the viewer.
+      cameras:
+        - entity: camera.doorbell
+          featured: true
+        - entity: camera.driveway
+          featured: true
+          detection: binary_sensor.driveway_person_detected
+        - camera.backyard
+        - camera.garage
+
+      # --- Security tiles (tap to lock/unlock or open/close, with confirm) ---
+      security:
+        - lock.front_door
+        - lock.back_door
+        - cover.garage_door
+        - entity: cover.front_gate
+          name: Front gate
+
+      # --- Ambient status column ------------------------------------------
+      status:
+        - type: locks                    # "All doors locked" / "Back door unlocked"
+        - type: garage                   # "Garage doors closed"
+        - entity: cover.front_gate       # "Front gate open"
+        - type: climate
+          entity: climate.downstairs
+          detail: Family, Dining, Powder # "Downstairs 72° · heating · Family, Dining, Powder"
+        - entity: binary_sensor.car_plugged_in
+          icon: bolt
+          text: { "on": Car plugged in, "off": Car unplugged }
+          detail_entity: sensor.car_charging_state   # "· charged"
+        - entity: valve.main_water
+          alert: false
+          text: { open: Water on, closed: Water off }
+          detail_entity: sensor.water_used_today
+          detail_suffix: " today"        # "· 11 gal today"
+
+      # Entities for the "recent activity" strip on Ambient (default: security).
+      activity:
+        - cover.front_gate
+        - lock.front_door
+
+      # --- Calendars ----------------------------------------------------------
+      calendars:                         # Calendar view
+        - calendar.family
+        - calendar.work
+      next_up_calendars:                 # "Next up" on Ambient (default: calendars)
+        - calendar.family
+      highlight_calendars:               # chips on Ambient, e.g. a team schedule
+        - calendar.seahawks
+      # calendar_colors: { calendar.work: "#D9734E" }
+
+# Optional: a daily energy counter for `energy_today`, made from any
+# ever-increasing energy sensor (smart meter, Emporia, Shelly EM, ...).
+# utility_meter:
+#   energy_today:
+#     source: sensor.home_energy_total
+#     cycle: daily
