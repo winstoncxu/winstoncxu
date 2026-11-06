@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Interview Coach</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one phone-width column; sticky round header, thumb-reach tab bar at the bottom. */
+:root {
+  --bg: #eef1f5; --surface: #ffffff; --ink: #0f1b2d; --muted: #586579; --line: #d6dce5;
+  --accent: #1d5bd6; --accent-ink: #ffffff; --tint: #e6edfb;
+  --rec: #d0335f; --good: #237a3b; --warn: #b5650a; --bad: #c22a2a;
+  --code: #f1f4f8;
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0a111d; --surface: #121c2d; --ink: #e4e9f1; --muted: #93a0b5; --line: #24324a;
+  --accent: #74a0ff; --accent-ink: #0a111d; --tint: #182744;
+  --rec: #ff6b93; --good: #6fd28a; --warn: #ffb35c; --bad: #ff7a7a; --code: #0b1422; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0a111d; --surface: #121c2d; --ink: #e4e9f1; --muted: #93a0b5; --line: #24324a;
+  --accent: #74a0ff; --accent-ink: #0a111d; --tint: #182744;
+  --rec: #ff6b93; --good: #6fd28a; --warn: #ffb35c; --bad: #ff7a7a; --code: #0b1422; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--ink); }
+body { font: 17px/1.5 var(--f-body); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 9; background: var(--surface); border-bottom: 1px solid var(--line); }
+header.top .wrap { padding-block: 10px; display: flex; flex-direction: column; gap: 8px; }
+.brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.brand h1 { font: 800 19px/1.1 var(--f-display); margin: 0; letter-spacing: -.01em; }
+.practice-badge { font: 700 11px/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--rec); border: 1.5px solid var(--rec); border-radius: 4px; padding: 4px 6px; }
+.micstate { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--muted); }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--line); flex: none; }
+.dot.on { background: var(--rec); animation: pulse 1.1s infinite; }
+@keyframes pulse { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .dot.on { animation: none; } }
+.rounds { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.rounds::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: 600 14px/1.2 var(--f-body); cursor: pointer; text-align: left; }
+.chip small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.chip[aria-pressed="true"] small { color: var(--accent-ink); opacity: .85; }
+.roundline { font-size: 13.5px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+.roundline b { color: var(--ink); }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+main { padding-block: 14px calc(84px + env(safe-area-inset-bottom, 0px)); }
+section.view { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; min-width: 0; }
+.card.flat { background: transparent; border-style: dashed; }
+h2 { font: 700 20px/1.2 var(--f-display); margin: 0; text-wrap: balance; }
+h3 { font: 700 15px/1.3 var(--f-body); margin: 0 0 6px; }
+.eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+p { margin: 0 0 .6em; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+button { font: 600 16px/1.2 var(--f-body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px; padding: 11px 16px; cursor: pointer; min-height: 44px; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, .chip:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.rec { background: var(--rec); color: #fff; border-color: var(--rec); }
+button.ghost { background: transparent; }
+button.sm { min-height: 34px; padding: 6px 12px; font-size: 14px; }
+button:disabled { opacity: .45; cursor: default; }
+.big { width: 100%; font-size: 18px; min-height: 54px; }
+textarea, input[type=text], input[type=password], select { width: 100%; font: 17px/1.45 var(--f-body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+textarea { resize: vertical; min-height: 88px; }
+label.lbl { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
+.check input { width: 22px; height: 22px; margin-top: 1px; flex: none; }
+.hint { font-size: 13.5px; color: var(--muted); }
+.consent { border-color: var(--rec); }
+.meter { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13.5px; color: var(--muted); }
+.meter b { color: var(--ink); font-family: var(--f-mono); font-weight: 500; }
+.meter .warnv { color: var(--warn); }
+
+.md { font-size: 16.5px; line-height: 1.55; overflow-wrap: anywhere; }
+.md h4 { font: 700 13px/1.3 var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); margin: 14px 0 4px; }
+.md h4:first-child { margin-top: 0; }
+.md ul, .md ol { margin: 0 0 .5em; padding-left: 1.25em; }
+.md li { margin: 2px 0; }
+.md p { margin: 0 0 .5em; }
+.md code { background: var(--code); padding: 1px 4px; border-radius: 4px; font-size: .9em; }
+.md pre { background: var(--code); padding: 10px; border-radius: 8px; overflow-x: auto; }
+.thinking { color: var(--muted); font-style: italic; }
+.err { color: var(--bad); }
+
+.score-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.score-big { font: 800 44px/1 var(--f-display); }
+.verdict { font-weight: 700; padding: 3px 10px; border-radius: 999px; font-size: 14px; border: 1.5px solid currentColor; }
+.v-good { color: var(--good); } .v-mid { color: var(--warn); } .v-bad { color: var(--bad); }
+.bars { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: center; font-size: 14px; margin: 10px 0; }
+.bar { height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
+.bar i { display: block; height: 100%; background: var(--accent); }
+.tag { display: inline-block; font-size: 12.5px; padding: 2px 8px; border-radius: 999px; background: var(--tint); color: var(--ink); margin: 2px 4px 2px 0; }
+.followup { background: var(--tint); border-radius: 10px; padding: 10px 12px; font-weight: 600; }
+
+.qlist { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.qlist li { display: flex; gap: 10px; align-items: flex-start; }
+.qlist .qn { font-family: var(--f-mono); color: var(--muted); font-size: 13px; padding-top: 3px; min-width: 1.4em; }
+.qlist .qt { flex: 1; min-width: 0; }
+.ex { border-left: 3px solid var(--line); padding-left: 10px; margin: 6px 0; }
+.ex.int { border-color: var(--accent); }
+.ex b { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: block; }
+
+.logitem summary { cursor: pointer; list-style: none; display: flex; gap: 10px; align-items: baseline; }
+.logitem summary::-webkit-details-marker { display: none; }
+.logscore { font: 800 20px/1 var(--f-display); min-width: 2.2em; }
+.ready { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.ready div { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--bg); }
+.ready b { font: 800 22px/1.1 var(--f-display); display: block; }
+.status-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+.status-table td { border-top: 1px solid var(--line); padding: 8px 4px; vertical-align: top; }
+.pill { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; border: 1.5px solid currentColor; }
+.p-ok { color: var(--good); } .p-mid { color: var(--warn); } .p-no { color: var(--bad); }
+
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+nav.tabs .in { max-width: 860px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); }
+nav.tabs a { text-decoration: none; color: var(--muted); text-align: center; padding: 10px 2px 9px; font: 700 13px/1.2 var(--f-body); border-top: 3px solid transparent; }
+nav.tabs a span { display: block; font: 800 15px/1.1 var(--f-display); color: inherit; }
+nav.tabs a[aria-current="page"] { color: var(--accent); border-top-color: var(--accent); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; border-radius: 0; min-height: 44px; background: transparent; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.autocard .q { font-weight: 700; font-size: 17px; margin: 0 0 8px; }
+.autocard.latest { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+#convoBox { height: 92px; min-height: 92px; max-height: 92px; resize: none; overflow-y: auto; }
+.convo-dock .dock-in { display: flex; flex-direction: column; gap: 8px; }
+body.focus header.top, body.focus nav.tabs, body.focus #autoIntro, body.focus #autoFeed, body.focus .seg, body.focus #consentCard, body.focus .dock-lbl { display: none !important; }
+body.focus { overflow: hidden; }
+body.focus .convo-dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 12; border-radius: 0; border-width: 1px 0 0; margin: 0;
+  padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+body.focus #convoBox { height: 60px; min-height: 60px; max-height: 60px; font-size: 15px; }
+.answer-panel { position: fixed; left: 0; right: 0; top: 0; height: 60vh; z-index: 11; background: var(--bg); display: flex; flex-direction: column; overflow: hidden; }
+.ap-head { display: flex; align-items: center; gap: 6px; background: var(--surface); border-bottom: 1px solid var(--line);
+  padding: max(8px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px)); }
+.ap-head button { min-height: 38px; padding: 6px 10px; font-size: 15px; }
+.ap-head button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.ap-q { flex: 1; min-width: 0; font-weight: 700; font-size: 15px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ap-pos { font-size: 13px; color: var(--muted); min-width: 2.6em; text-align: center; }
+.ap-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; font-size: 19px; line-height: 1.55;
+  padding: 14px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+.ap-body > .md { max-width: 760px; margin: 0 auto; }
+.answer-card { padding: 0; overflow: hidden; position: relative; }
+.answer-card .ap-head { padding: 8px 10px; }
+.answer-card .ap-body { height: 40vh; min-height: 200px; flex: none; font-size: 18px; padding: 12px 14px 20px; }
+body.compact header.top, body.compact nav.tabs, body.compact #autoIntro, body.compact .seg, body.compact #consentCard, body.compact .dock-lbl, body.compact #autoHistory { display: none !important; }
+body.compact main { padding-block: 6px 6px; }
+body.compact .answer-card .ap-body { height: 44vh; }
+.convo-dock #convoBox { height: 58px; min-height: 58px; max-height: 58px; font-size: 15px; }
+.ap-new { position: absolute; left: 50%; transform: translateX(-50%); bottom: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.25); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 15px; z-index: 20; max-width: 90vw; }
+</style>
+
+<div id="vault" style="position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px">
+  <form class="card stack" id="vaultForm" style="max-width:420px;width:100%">
+    <h2>Interview Coach</h2>
+    <p class="small muted">Enter your passphrase to unlock your practice content. It's decrypted only on this device.</p>
+    <input type="password" id="vaultPass" autocomplete="current-password" placeholder="Passphrase" aria-label="Passphrase">
+    <label class="check small"><input type="checkbox" id="vaultRemember" checked> Remember on this device</label>
+    <button class="primary" type="submit">Unlock</button>
+    <p class="err small" id="vaultErr" role="alert"></p>
+  </form>
+</div>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <h1>Interview Coach</h1>
+      <span class="practice-badge">Practice only</span>
+      <span class="micstate" id="micState"><span class="dot" id="micDot"></span><span id="micText">Mic off</span><button class="sm" id="micStopBtn" hidden>Stop</button></span>
+    </div>
+    <div class="rounds" id="roundChips" role="group" aria-label="Interview round"></div>
+    <div class="roundline" id="roundLine"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- MODE A: friend-led live mock -->
+  <section class="view" id="view-live">
+    <div class="card consent" id="consentCard">
+      <p class="eyebrow">Before you start</p>
+      <label class="check"><input type="checkbox" id="consentChk"> <span>Everyone speaking in this session agrees to be transcribed, and this is a <b>mock practice session, not a real interview</b>. Real interviews usually prohibit outside AI help and recording.</span></label>
+    </div>
+
+    <div class="seg" role="group" aria-label="Mock mode">
+      <button id="modeAutoBtn" aria-pressed="true">Continuous</button>
+      <button id="modeStepBtn" aria-pressed="false">Step by step + scoring</button>
+    </div>
+
+    <div id="autoWrap" class="stack">
+      <div class="card stack" id="autoIntro">
+        <div><p class="eyebrow">Continuous listening</p><h2 id="autoTitle">Practice conversation</h2></div>
+        <button class="primary big" id="autoListenBtn">🎙 Start listening to the conversation</button>
+        <p class="hint" id="autoHint"></p>
+      </div>
+      <div class="card answer-card" id="answerCard">
+        <div class="ap-head">
+          <button id="apPrev" aria-label="Previous answer">‹</button><span class="ap-pos mono" id="apPos">0/0</span><button id="apNext" aria-label="Next answer">›</button>
+          <span class="ap-q" id="apQ"></span>
+          <button id="apHold" aria-pressed="false">Hold</button>
+        </div>
+        <div class="ap-body" id="apBody"></div>
+        <button class="primary sm ap-new" id="apNew" hidden>New answer ↓</button>
+      </div>
+      <div class="card convo-dock" id="convoDock"><div class="dock-in">
+        <label class="lbl dock-lbl" for="convoBox">Live transcript (whole conversation)</label>
+        <textarea id="convoBox" rows="2" placeholder="Tap here, then the keyboard 🎤, and keep dictating."></textarea>
+        <div class="row" style="flex-wrap:nowrap"><span class="dot" id="autoDot"></span><span class="hint" id="autoStatus" style="flex:1;min-width:0">Idle</span></div>
+        <div class="row"><button class="sm" id="autoNowBtn">Answer now</button><button class="sm ghost" id="autoClearBtn">Clear</button><button class="sm ghost" id="autoDoneBtn" hidden>Done</button></div>
+      </div></div>
+      <details class="card" id="autoHistory"><summary><b>All answers this session</b> (<span id="histCount">0</span>)</summary><div id="autoFeed" class="stack" style="margin-top:10px"></div></details>
+    </div>
+
+    <div id="stepWrap" class="stack" hidden>
+    <div class="card stack">
+      <div>
+        <p class="eyebrow">1 · Interviewer asks</p>
+        <h2 id="liveRoundTitle">Practice question</h2>
+      </div>
+      <textarea id="qBox" rows="3" placeholder="Your friend asks the question out loud. Capture it with the mic button, the 🎤 on your keyboard, or by typing."></textarea>
+      <div class="row">
+        <button class="primary" id="listenQBtn">🎙 Listen to interviewer</button>
+        <button id="scaffoldBtn">Answer now</button>
+        <button class="ghost sm" id="pickQBtn">Use a bank question</button>
+      </div>
+      <p class="hint" id="dictateHintQ" hidden>Live mic isn't available on this page. Tap the text box, then the 🎤 on your iPhone keyboard to dictate. The answer starts on its own once the question stops changing; small talk is skipped.</p>
+    </div>
+
+    <div class="card" id="coachCard" hidden>
+      <p class="eyebrow">Complete answer</p>
+      <div class="md" id="coachOut"></div>
+      <div class="row" style="margin-top:8px"><button class="sm" id="stopAiBtn">Stop</button></div>
+    </div>
+
+    <div class="card stack">
+      <p class="eyebrow">2 · You answer</p>
+      <textarea id="aBox" rows="6" placeholder="Speak your answer. It's transcribed here so it can be scored. Typing works too."></textarea>
+      <div class="meter" id="aMeter"></div>
+      <div class="row">
+        <button class="rec" id="listenABtn">🎙 Record my answer</button>
+        <button class="primary" id="scoreBtn">Score my answer</button>
+      </div>
+      <p class="hint" id="dictateHintA" hidden>Tap the box, then the keyboard 🎤 and speak. Tap Done on the keyboard when you finish.</p>
+    </div>
+
+    <div class="card" id="scoreCard" hidden></div>
+    </div>
+  </section>
+
+  <!-- MODE B: solo adversarial -->
+  <section class="view" id="view-drill" hidden>
+    <div class="card stack">
+      <div><p class="eyebrow">Solo adversarial interviewer</p><h2 id="drillTitle">Drill</h2></div>
+      <p class="small muted" id="drillPersona"></p>
+      <label class="lbl" for="drillQSel">Question</label>
+      <select id="drillQSel"></select>
+      <div class="row">
+        <button class="primary" id="drillStartBtn">Start round</button>
+        <button id="drillRandomBtn">Random question</button>
+        <label class="check small" style="align-items:center"><input type="checkbox" id="drillVoice" checked> Read questions aloud</label>
+      </div>
+    </div>
+    <div class="card stack" id="drillStage" hidden>
+      <div id="drillExchange"></div>
+      <div class="followup" id="drillAsk"></div>
+      <textarea id="drillBox" rows="6" placeholder="Answer out loud. Capture it with the mic or the keyboard 🎤."></textarea>
+      <div class="meter" id="drillMeter"></div>
+      <div class="row">
+        <button class="rec" id="drillMicBtn">🎙 Record answer</button>
+        <button class="primary" id="drillSubmitBtn">Submit answer</button>
+        <button id="drillEndBtn">End &amp; score</button>
+      </div>
+      <p class="hint">Up to three follow-ups, one at a time. Scores come only after the round.</p>
+    </div>
+    <div class="card" id="drillScore" hidden></div>
+  </section>
+
+  <!-- MODE C: final 15 -->
+  <section class="view" id="view-final" hidden></section>
+
+  <!-- MODE D: log -->
+  <section class="view" id="view-log" hidden>
+    <div class="card">
+      <p class="eyebrow">Readiness by round</p>
+      <div class="ready" id="readyGrid"></div>
+      <p class="hint" style="margin-top:8px">Average overall score of your last three scored answers in each round.</p>
+    </div>
+    <div class="card" id="weakCard"></div>
+    <div class="card stack">
+      <div class="row" style="justify-content:space-between"><h2>Practice log</h2>
+        <div class="row"><button class="sm" id="copyLogBtn">Copy as Markdown</button><button class="sm" id="dlLogBtn" hidden>Download</button></div></div>
+      <div id="logList" class="stack"></div>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <section class="view" id="view-setup" hidden>
+    <div class="card">
+      <p class="eyebrow">What works on this device</p>
+      <table class="status-table" id="statusTable"></table>
+    </div>
+    <div class="card stack" id="apiCard">
+      <p class="eyebrow">AI connection</p>
+      <div id="apiKeyRow" class="stack">
+        <div><label class="lbl" for="apiKey">Anthropic API key (only needed outside claude.ai)</label>
+        <input type="password" id="apiKey" placeholder="sk-ant-..." autocomplete="off"></div>
+        <label class="check small"><input type="checkbox" id="rememberKey"> Remember the key in this browser</label>
+        <div><label class="lbl" for="model">Model</label>
+        <select id="model"><option value="claude-opus-5-5">Opus 5.5 (best)</option><option value="claude-sonnet-5-5">Sonnet 5.5</option><option value="claude-haiku-5-5">Haiku 5.5 (fastest)</option></select></div>
+      </div>
+      <div><label class="lbl" for="speed">Scaffold speed</label>
+      <select id="speed"><option value="fast">Fast (first words in a few seconds)</option><option value="deep">Thorough (slower, deeper)</option></select></div>
+    </div>
+    <div class="card stack">
+      <p class="eyebrow">Listening</p>
+      <div><label class="lbl" for="silence">Answer after the room is quiet for <span id="silenceVal"></span></label>
+      <input type="range" id="silence" min="600" max="4000" step="100" value="1200" style="width:100%"></div>
+      <div><label class="lbl" for="alen">Live answer length (continuous mode)</label>
+      <select id="alen"><option value="concise">Concise · about 60s spoken, fastest</option><option value="standard">Standard · about 90s spoken</option><option value="comprehensive">Comprehensive · 2-3 min spoken, slowest</option></select></div>
+      <label class="check small"><input type="checkbox" id="autoScaffold" checked> Step-by-step mode: answer automatically when the question stops changing</label>
+    </div>
+    <div class="card stack">
+      <p class="eyebrow">Your confirmed facts</p>
+      <p class="small muted">The coach only treats your resume and what you write here as true. Add real details you've confirmed (a baseline metric, the stakeholder's role, what failed), one per line. Practice answers never become facts automatically.</p>
+      <textarea id="notesBox" rows="6" placeholder="e.g. Previous role: review cycle went from ~X weeks to ~Y weeks (confirmed from my 2023 review doc)"></textarea>
+      <div class="row"><button class="primary sm" id="saveNotesBtn">Save facts</button><span class="hint" id="notesSaved"></span></div>
+    </div>
+    <div class="card stack">
+      <p class="eyebrow">Practice data</p>
+      <p class="small" id="storageWhere"></p>
+      <div class="row"><button class="sm" id="delAllBtn">Delete all practice data</button><button class="sm rec" id="delAllConfirm" hidden>Yes, delete everything</button></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs" aria-label="Modes"><div class="in">
+  <a href="#live" data-tab="live"><span>Mock</span>Friend-led</a>
+  <a href="#drill" data-tab="drill"><span>Drill</span>Solo</a>
+  <a href="#final" data-tab="final"><span>Final 15</span>Review</a>
+  <a href="#log" data-tab="log"><span>Log</span>Progress</a>
+  <a href="#setup" data-tab="setup"><span>Setup</span>Status</a>
+</div></nav>
+<div class="toast" id="toast" hidden></div>
+</div>
+
+<script>
+const VAULT = { salt: "4HrcDICFXD8locHGMzDiTg==", iv: "IDsM+df3AjSwTSPt", ct: "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", iter: 310000 };
+async function vaultOpen(pass) {
+  const u = (x) => Uint8Array.from(atob(x), (c) => c.charCodeAt(0));
+  const km = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: u(VAULT.salt), iterations: VAULT.iter, hash: "SHA-256" }, km, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: u(VAULT.iv) }, key, u(VAULT.ct))));
+}
+async function vaultTry(pass, remember) {
+  let d; try { d = await vaultOpen(pass.trim()); } catch { return false; }
+  ({ ROUNDS, STORIES, BRIEF, PLAYBOOK, ANSWER_FORMAT, COMPANY } = d);
+  document.title = d.TITLE; document.querySelector("header.top h1").textContent = d.TITLE;
+  try { remember ? localStorage.setItem("mlc:vault", pass.trim()) : localStorage.removeItem("mlc:vault"); } catch {}
+  document.getElementById("vault").remove(); bootApp(); return true;
+}
+document.getElementById("vaultForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault(); const err = document.getElementById("vaultErr"); err.textContent = "Unlocking…";
+  if (!window.crypto?.subtle) { err.textContent = "This page needs a secure (https) connection to unlock."; return; }
+  const ok = await vaultTry(document.getElementById("vaultPass").value, document.getElementById("vaultRemember").checked);
+  if (!ok) err.textContent = "That passphrase didn't work. Check it and try again.";
+});
+(async () => { let saved = null; try { saved = localStorage.getItem("mlc:vault"); } catch {} if (saved && !(await vaultTry(saved, true))) { try { localStorage.removeItem("mlc:vault"); } catch {} } })();
+
+/* =================== SOURCE-OF-TRUTH CONTENT (from the Nov 5 handoff bundle) =================== */
+let ROUNDS = [], STORIES = {}, BRIEF = "", PLAYBOOK = "", ANSWER_FORMAT = "", COMPANY = "the company";
+function bootApp() {
+/* =================== helpers =================== */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const ls = {
+  get(k, d = null) { try { const v = localStorage.getItem("mlc:" + k); return v === null ? d : v; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("mlc:" + k, v); } catch {} },
+  del(k) { try { localStorage.removeItem("mlc:" + k); } catch {} },
+};
+function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2600); }
+function copyText(text) {
+  return navigator.clipboard?.writeText(text).then(() => toast("Copied"), () => fallbackCopy(text)) ?? fallbackCopy(text);
+}
+function fallbackCopy(text) {
+  const ta = document.createElement("textarea"); ta.value = text; document.body.append(ta); ta.select();
+  try { document.execCommand("copy"); toast("Copied"); } catch { toast("Select the text and copy it manually"); }
+  setTimeout(() => ta.remove(), 50);
+}
+function inline(s) { return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>"); }
+function md(src) {
+  const out = []; let list = null, para = [], code = null;
+  const fp = () => { if (para.length) { out.push("<p>" + inline(para.join(" ")) + "</p>"); para = []; } };
+  const fl = () => { if (list) { out.push(`<${list.t}>` + list.items.map((i) => "<li>" + inline(i) + "</li>").join("") + `</${list.t}>`); list = null; } };
+  for (const line of String(src).split("\n")) {
+    if (code) { if (/^```/.test(line)) { out.push("<pre><code>" + esc(code.join("\n")) + "</code></pre>"); code = null; } else code.push(line); continue; }
+    if (/^```/.test(line)) { fp(); fl(); code = []; continue; }
+    let m;
+    if ((m = line.match(/^\s*[-*•]\s+(.*)/))) { fp(); if (!list || list.t !== "ul") { fl(); list = { t: "ul", items: [] }; } list.items.push(m[1]); continue; }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)/))) { fp(); if (!list || list.t !== "ol") { fl(); list = { t: "ol", items: [] }; } list.items.push(m[1]); continue; }
+    if ((m = line.match(/^#{1,6}\s+(.*)/))) { fp(); fl(); out.push("<h4>" + inline(m[1]) + "</h4>"); continue; }
+    if (!line.trim()) { fp(); fl(); continue; }
+    fl(); para.push(line.trim());
+  }
+  if (code) out.push("<pre><code>" + esc(code.join("\n")) + "</code></pre>");
+  fp(); fl(); return out.join("");
+}
+function parseJSON(text) {
+  const s = text.indexOf("{"), e = text.lastIndexOf("}");
+  if (s < 0 || e < s) throw new Error("No JSON in response");
+  return JSON.parse(text.slice(s, e + 1));
+}
+const fmtPT = (iso) => new Date(iso).toLocaleString("en-US", { timeZone: "America/Los_Angeles", weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + " PT";
+function untilText(iso) {
+  const ms = new Date(iso) - Date.now();
+  if (ms < 0) return new Date(iso).getTime() + 45 * 60000 > Date.now() ? "happening now" : "done";
+  const h = Math.floor(ms / 3600000), d = Math.floor(h / 24);
+  return d >= 1 ? `in ${d}d ${h % 24}h` : `in ${h}h ${Math.floor(ms % 3600000 / 60000)}m`;
+}
+
+/* =================== state & settings =================== */
+const settings = {
+  apiKey: ls.get("apiKey", ""), model: ls.get("model", "claude-opus-5-5"), speed: ls.get("speed", "fast"),
+  silence: Number(ls.get("silence2", "1200")), autoScaffold: ls.get("autoScaffold", "1") === "1", alen: ls.get("alen", "standard"),
+};
+function defaultRound() {
+  const now = Date.now();
+  const next = ROUNDS.find((r) => r.end && new Date(r.end).getTime() > now);
+  return ls.get("round", next ? next.id : "core");
+}
+let roundId = defaultRound();
+const R = () => ROUNDS.find((r) => r.id === roundId) || ROUNDS[0];
+let attempts = [];
+let userNotes = "";
+
+/* =================== storage: claude.ai account (db) or this browser =================== */
+const store = {
+  mode: "local", db: null,
+  async init() {
+    try {
+      if (window.claude?.use) {
+        const db = await window.claude.use("db");
+        if (db) {
+          const snap = await db.collection("attempts").orderBy("ts", "desc").limit(300).get();
+          this.db = db; this.mode = "db";
+          attempts = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          const n = await db.doc("profile/notes").get();
+          userNotes = n.exists ? String(n.data().text || "") : "";
+          return;
+        }
+      }
+    } catch { this.db = null; this.mode = "local"; }
+    try { attempts = JSON.parse(ls.get("attempts", "[]")); } catch { attempts = []; }
+    userNotes = ls.get("notes", "");
+    this.mode = testLocal() ? "local" : "session";
+  },
+  async save(a) {
+    attempts.unshift(a);
+    if (this.mode === "db") { try { await this.db.collection("attempts").doc(a.id).set(a); return; } catch { this.mode = "local"; toast("Couldn't sync, saved on this device"); } }
+    ls.set("attempts", JSON.stringify(attempts.slice(0, 300)));
+  },
+  async remove(id) {
+    attempts = attempts.filter((a) => a.id !== id);
+    if (this.mode === "db") { try { await this.db.collection("attempts").doc(id).delete(); return; } catch {} }
+    ls.set("attempts", JSON.stringify(attempts));
+  },
+  async saveNotes(text) {
+    userNotes = text;
+    if (this.mode === "db") { try { await this.db.doc("profile/notes").set({ text, ts: Date.now() }); return; } catch {} }
+    ls.set("notes", text);
+  },
+  async wipe() {
+    const ids = attempts.map((a) => a.id); attempts = []; userNotes = "";
+    if (this.mode === "db") { for (const id of ids) { try { await this.db.collection("attempts").doc(id).delete(); } catch {} } try { await this.db.doc("profile/notes").delete(); } catch {} }
+    ls.del("attempts"); ls.del("notes");
+  },
+};
+function testLocal() { try { localStorage.setItem("mlc:t", "1"); localStorage.removeItem("mlc:t"); return true; } catch { return false; } }
+
+/* =================== AI: claude.ai account (sample) or API key =================== */
+const SDK_URL = "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.1.0/+esm";
+let sampleFn = null, sampleTiers = null, aiReady = false;
+async function initAI() {
+  try {
+    if (window.claude?.use) {
+      const s = await window.claude.use("sample");
+      if (s) { sampleFn = s; try { sampleTiers = (await s.limits?.())?.modelTiers || null; } catch {} }
+    }
+  } catch {}
+  aiReady = true; renderStatus(); renderApiCard();
+}
+const aiLabel = () => sampleFn ? "claude.ai account" : (settings.apiKey ? "API key" : "not connected");
+
+async function ai(stable, task, { kind = "scaffold", onText, signal } = {}) {
+  if (sampleFn) {
+    const tier = kind === "detect" ? "quick" : (kind === "score" || kind === "model") ? "default" : (settings.speed === "fast" ? "quick" : "default");
+    const opts = { signal, cache: kind !== "followup" && kind !== "detect" };
+    if (onText) opts.onText = ({ text }) => onText(text);
+    if (!sampleTiers || sampleTiers.includes(tier)) opts.modelTier = tier;
+    const r = await sampleFn(stable ? stable + "\n\n" + task : task, opts);
+    return r.text;
+  }
+  if (!settings.apiKey) throw { code: "no_ai" };
+  const { default: Anthropic } = await import(SDK_URL);
+  const client = new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
+  const model = settings.model;
+  const params = {
+    model, max_tokens: kind === "detect" ? 300 : 8000,
+    messages: [{ role: "user", content: stable ? [
+      { type: "text", text: stable, cache_control: { type: "ephemeral" } },
+      { type: "text", text: task }] : [{ type: "text", text: task }] }],
+    output_config: { effort: kind === "detect" ? "low" : (kind === "score" || kind === "model") ? "medium" : (settings.speed === "fast" ? "low" : "medium") },
+  };
+  if (model !== "claude-haiku-5-5") { params.betas = ["server-side-fallback-2026-07-01"]; params.fallbacks = "default"; }
+  const stream = client.beta.messages.stream(params, { signal });
+  let text = "";
+  stream.on("text", (d) => { text += d; onText?.(text); });
+  const fin = await stream.finalMessage();
+  if (fin.stop_reason === "refusal") throw { code: "refusal" };
+  return text;
+}
+function aiError(e) {
+  const c = e?.code, s = e?.status;
+  if (c === "no_ai") return "Connect AI first: open Setup and add an Anthropic API key (or open this page on claude.ai).";
+  if (c === "not_granted") return "Claude access was declined for this page. Reload and allow it to get coaching.";
+  if (c === "rate_limited" || s === 429) return "Too many requests right now. Wait a minute, then try again.";
+  if (c === "refusal") return "Claude declined this one. Try rephrasing the question.";
+  if (s === 401) return "That API key was rejected. Check it in Setup.";
+  if (s >= 500) return "Claude is overloaded. Try again in a moment.";
+  return e?.message || "Something went wrong. Try again.";
+}
+
+/* =================== prompts =================== */
+function stableContext(round) {
+  const r = round;
+  const storyText = Object.values(STORIES).map((s) => `• ${s.title}\n  Verified: ${s.facts.join(" | ")}\n  Not yet confirmed (do not claim): ${s.gaps.join("; ")}`).join("\n");
+  return `${BRIEF}
+
+${PLAYBOOK}
+
+VERIFIED FACTS (from the candidate's resume and handoff notes):
+${storyText}
+Credentials: IAPP Advisory Board 2024-2026; AIGP, FIP, CIPT, CIPM, CIPP; MBA in progress (Seattle University). Don't lead with credentials.
+Leadership stories the candidate has NOT yet supplied (handle with the COMPLETE ANSWER STANDARD, never invent them): a named senior leader he developed; a difficult performance conversation; manager-of-managers or budget ownership; a failure with clear personal accountability.
+
+USER-CONFIRMED FACTS (treat as verified):
+${userNotes.trim() || "(none yet)"}
+
+THIS ROUND: ${r.who}, ${r.title}. Competency: ${r.comp}.
+What it tests: ${r.tests}
+Recruiter's example: "${r.recruiterQ}"
+Typical probes: ${r.probes.join(" / ")}
+Must avoid: ${r.mustAvoid.join(" / ")}
+Best stories for this round: ${r.stories.map((k) => STORIES[k].title).join("; ")}`;
+}
+
+const scaffoldTask = (q, r) => `TASK: COMPLETE PRACTICE ANSWER (mock interview, practice only)
+A friend playing ${r.who} asked this (speech-to-text, may have errors; infer the intended question):
+"""${q}"""
+
+First line: **Type:** <behavioral | hypothetical scenario | product sense | project retrospective | people leadership> · **Tests:** <what the interviewer is really probing>
+Then, in Markdown, no preamble:
+${ANSWER_FORMAT}
+Director altitude throughout. Follow the playbook anatomy and the COMPLETE ANSWER STANDARD.`;
+
+const scoreTask = (r, exchange, secs) => `TASK: HIRING-COMMITTEE SCORECARD (mock practice)
+Round: ${r.who}, ${r.comp}.
+Practice exchange (candidate answers are speech-to-text; total speaking time about ${Math.round(secs)}s):
+${exchange}
+
+Score like a strict ${COMPANY} director-level hiring committee. Return ONLY a JSON object, no prose:
+{"type":"behavioral|scenario|product sense|retrospective|people leadership",
+ "scores":{"strategy":0,"relevance":0,"expertise":0,"clarity":0,"evidence":0,"presence":0},
+ "overall":0,
+ "verdict":"Strong hire|Hire|Lean hire|Lean no hire|No hire",
+ "biggestGap":"one sentence",
+ "strengths":["max 2 short items"],
+ "improvements":["exactly 3 specific, actionable fixes"],
+ "followUp":"one hard probing follow-up in ${r.who}'s voice",
+ "rewrite":"a complete spoken executive answer, 300-400 words, Markdown paragraphs with bold beat lead-ins",
+ "unverifiedClaims":["specific claims in his answer not supported by verified or user-confirmed facts"],
+ "weakAreas":["short tags, e.g. ownership, metrics, tradeoffs, executive altitude, structure, clarifying question, not-building, anti-gaming, failure reflection, people outcomes"]}
+Rules: scores are integers 1-10 (evidence = specific personal ownership and verified numbers; presence = Director altitude and confident spoken delivery). overall is holistic, one decimal allowed. A vague or "we"-heavy answer scores 5 or below; 8+ means it would clearly pass. The rewrite follows the COMPLETE ANSWER STANDARD: no placeholders or blanks, only verified facts, user-confirmed facts and facts he stated, kept truthful where specifics are missing. Be candid and specific.`;
+
+const followTask = (r, exchange) => `TASK: ADVERSARIAL INTERVIEWER (mock practice)
+You are ${r.who}, ${r.title}, running the "${r.comp}" round. Persona: ${r.persona}
+Exchange so far:
+${exchange}
+
+Ask exactly ONE hard follow-up that targets the biggest gap in his last answer (personal ownership, a missing metric or baseline, a tradeoff, what failed, executive altitude, what he would not build, metric gaming, risk tiers, as fits this round). Spoken style, one or two sentences. Output only the question.`;
+
+/* =================== speech: live recognition where allowed =================== */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const mic = { rec: null, on: false, target: null, label: "", onPause: null, timer: null, interim: "", blocked: false, startedAt: 0 };
+function micAvailable() { return !!SR && !mic.blocked; }
+function setMicUI() {
+  $("micDot").className = "dot" + (mic.on ? " on" : "");
+  $("micText").textContent = mic.on ? `Mic on · ${mic.label}` : (mic.blocked ? "Mic blocked here" : "Mic off");
+  $("micStopBtn").hidden = !mic.on;
+  for (const [btn, lbl, idle] of [["autoListenBtn", "conversation", "🎙 Start listening to the conversation"], ["listenQBtn", "interviewer", "🎙 Listen to interviewer"], ["listenABtn", "my answer", "🎙 Record my answer"], ["drillMicBtn", "drill answer", "🎙 Record answer"]]) {
+    const b = $(btn); const active = mic.on && mic.label === lbl;
+    b.textContent = active ? (lbl === "conversation" ? "■ Stop listening" : "■ Stop mic") : idle;
+  }
+  const showHint = !micAvailable();
+  $("dictateHintQ").hidden = !showHint; $("dictateHintA").hidden = !showHint;
+  const secs = (settings.silence / 1000).toFixed(1) + "s";
+  $("autoHint").innerHTML = showHint
+    ? `Live mic isn't available on this page. Tap the transcript box below, then the 🎤 on your keyboard, and <b>leave dictation running</b>. The answer box sits right above the transcript strip and stays still. Each time the room is quiet for ${secs}, the coach checks for a real question and answers it; small talk is skipped.`
+    : `Listens until you stop. The answer box stays still above the transcript strip. Each time the room is quiet for ${secs}, the coach checks for a real question and answers it; small talk is skipped.`;
+  $("autoDot").className = "dot" + (mic.on && mic.label === "conversation" ? " on" : "");
+}
+function startMic(target, label, onPause) {
+  if (!$("consentChk").checked && label !== "drill answer") { toast("Confirm consent first"); $("consentCard").scrollIntoView({ behavior: "smooth" }); return; }
+  if (!micAvailable()) { target.focus(); toast("Use the 🎤 on your keyboard to dictate"); return; }
+  stopMic();
+  speechSynthesis?.cancel?.();
+  mic.target = target; mic.label = label; mic.onPause = onPause; mic.interim = ""; mic.startedAt = Date.now();
+  const strip = () => target.value.replace(/\s*…[^…]*$/, "");
+  let sessionBase = strip();
+  mic.started = false;
+  const rec = new SR(); mic.rec = rec;
+  rec.continuous = true; rec.interimResults = true; rec.lang = "en-US"; rec.maxAlternatives = 1;
+  rec.onstart = () => { mic.started = true; sessionBase = strip(); };
+  rec.onresult = (e) => {
+    let finals = "", interim = "";
+    for (let i = 0; i < e.results.length; i++) {
+      const res = e.results[i];
+      if (res.isFinal) finals += " " + res[0].transcript; else interim += " " + res[0].transcript;
+    }
+    const committed = (sessionBase + " " + finals).replace(/\s+/g, " ").trim();
+    target.value = committed + (interim.trim() ? " …" + interim.trim() : "");
+    target.dispatchEvent(new Event("input"));
+    clearTimeout(mic.timer);
+    if (mic.onPause) mic.timer = setTimeout(() => { if (target.value.trim()) mic.onPause(); }, settings.silence);
+  };
+  rec.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture") {
+      if (mic.started) { mic.on = false; mic.rec = null; setMicUI(); toast("Listening paused. Tap Start listening to resume."); return; }
+      mic.blocked = true; stopMic(); renderStatus();
+      toast(e.error === "service-not-allowed" ? "Speech recognition is off. On iPhone: Settings → General → Keyboard → Enable Dictation, and allow the mic for this site." : "Mic access was blocked. Allow the microphone for this site, or use the keyboard 🎤.");
+      target.focus();
+    }
+  };
+  rec.onend = () => {
+    if (!(mic.on && mic.rec === rec)) return;
+    target.value = target.value.replace(/\s*…\s*/, " ").replace(/\s+/g, " ").trim();  // keep trailing words Safari didn't finalize
+    target.dispatchEvent(new Event("input"));
+    setTimeout(() => {
+      if (!(mic.on && mic.rec === rec)) return;
+      try { rec.start(); } catch { mic.on = false; mic.rec = null; setMicUI(); toast("Listening paused. Tap Start listening to resume."); }
+    }, 250);
+  };
+  try { rec.start(); mic.on = true; } catch { mic.blocked = true; }
+  setMicUI();
+}
+function stopMic() {
+  clearTimeout(mic.timer);
+  if (mic.target) mic.target.value = mic.target.value.replace(/\s*…[^…]*$/, "").replace(/…/g, "");
+  mic.on = false; const r = mic.rec; mic.rec = null;
+  try { r && r.stop(); } catch {}
+  setMicUI();
+}
+$("micStopBtn").onclick = stopMic;
+function toggleMic(target, label, onPause) { (mic.on && mic.label === label) ? stopMic() : startMic(target, label, onPause); }
+
+function speak(text) {
+  try {
+    if (!("speechSynthesis" in window)) return;
+    if (mic.on) stopMic();
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text); u.rate = 1.0; u.lang = "en-US";
+    speechSynthesis.speak(u);
+  } catch {}
+}
+
+/* =================== live answer meter =================== */
+function meter(el, text, startedAt) {
+  const words = (text.match(/\b[\w'%$.-]+\b/g) || []).length;
+  const iCount = (text.match(/\b(I|I'm|I've|I'd|my|me)\b/g) || []).length;
+  const weCount = (text.match(/\b(we|we're|we've|our|us|the team)\b/gi) || []).length;
+  const nums = (text.match(/\d[\d,.]*\s*(%|x|percent|m|k|b|million|billion)?/gi) || []).length;
+  const secs = startedAt ? Math.round((Date.now() - startedAt) / 1000) : Math.round(words / 2.5);
+  const weHeavy = weCount > iCount && words > 40;
+  el.innerHTML = `<span>Time <b>${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}</b></span>
+    <span>Words <b>${words}</b></span>
+    <span class="${weHeavy ? "warnv" : ""}">I / we <b>${iCount}/${weCount}</b>${weHeavy ? " · say what YOU did" : ""}</span>
+    <span>Numbers <b>${nums}</b></span>`;
+  return secs;
+}
+
+/* =================== MODE A: friend-led live mock =================== */
+let liveCtl = null, liveStart = 0;
+function renderLiveHeader() { $("liveRoundTitle").textContent = `${R().who} · ${R().comp}`; $("autoTitle").textContent = `${R().who} · ${R().comp}`; }
+$("consentChk").addEventListener("change", () => { try { sessionStorage.setItem("mlc:consent", $("consentChk").checked ? "1" : ""); } catch {} });
+try { $("consentChk").checked = sessionStorage.getItem("mlc:consent") === "1"; } catch {}
+
+$("listenQBtn").onclick = () => toggleMic($("qBox"), "interviewer", null);
+$("scaffoldBtn").onclick = () => { stopMic(); runScaffold(false); };
+const qwatch = { val: "", changedAt: 0, done: "" };
+setInterval(() => {
+  if ($("stepWrap").hidden || $("view-live").hidden || !settings.autoScaffold) return;
+  const v = $("qBox").value.replace(/\s*…[^…]*$/, "").trim(), now = Date.now();
+  if (v !== qwatch.val) { qwatch.val = v; qwatch.changedAt = now; return; }
+  if (!v || v === qwatch.done || v.split(/\s+/).length < 2 || liveCtl) return;
+  if (now - qwatch.changedAt >= settings.silence) { qwatch.done = v; runScaffold(true); }
+}, 700);
+$("pickQBtn").onclick = () => {
+  const qs = R().questions; const q = qs[Math.floor(Math.random() * qs.length)];
+  $("qBox").value = q; qwatch.done = q; runScaffold(false);
+};
+$("stopAiBtn").onclick = () => liveCtl?.abort();
+
+async function runScaffold(fromAuto) {
+  const q = $("qBox").value.replace(/\s*…[^…]*$/, "").trim(); if (!q) { if (!fromAuto) toast("Capture or type the question first"); return; }
+  qwatch.done = q;
+  liveCtl?.abort(); const ctl = new AbortController(); liveCtl = ctl;
+  $("coachCard").hidden = false; $("coachOut").innerHTML = `<span class="thinking">Writing your answer…</span>`;
+  $("scoreCard").hidden = true; $("aBox").value = ""; liveStart = 0; updateLiveMeter();
+  const t0 = performance.now();
+  try {
+    const task = scaffoldTask(q, R()) + (fromAuto ? `\nIf the text holds no real interview question or prompt (only greetings, small talk, audio checks, logistics or the interviewer introducing themselves), output exactly "SKIP: <3-6 word reason>" and nothing else. Casual-sounding prompts like "tell me about yourself", "why ${COMPANY}" or "any questions for me" ARE real.` : "");
+    const text = await ai(stableContext(R()), task, { kind: "scaffold", signal: ctl.signal, onText: (t) => { if (/^\s*SKIP/.test(t) || "SKIP".startsWith(t.trim())) return; $("coachOut").innerHTML = md(t); } });
+    const sk = text.trim().match(/^SKIP\b:?\s*(.*)/);
+    if (sk) { $("coachOut").innerHTML = `<p class="muted">Skipped: ${esc(sk[1] || "small talk")}. Waiting for a real question.</p>`; return; }
+    $("coachOut").innerHTML = md(text) + `<p class="hint">Ready in ${((performance.now() - t0) / 1000).toFixed(1)}s · ${aiLabel()}</p>`;
+  } catch (e) {
+    if (ctl.signal.aborted || e?.code === "cancelled") { $("coachOut").insertAdjacentHTML("beforeend", `<p class="thinking">(stopped)</p>`); return; }
+    $("coachOut").innerHTML = `<p class="err">${esc(aiError(e))}</p>`;
+  } finally { if (liveCtl === ctl) liveCtl = null; }
+}
+
+function updateLiveMeter() { return meter($("aMeter"), $("aBox").value, liveStart); }
+$("aBox").addEventListener("input", () => { if (!liveStart && $("aBox").value.trim()) liveStart = Date.now(); updateLiveMeter(); });
+$("listenABtn").onclick = () => { if (!(mic.on && mic.label === "my answer")) liveStart = Date.now(); toggleMic($("aBox"), "my answer", null); };
+setInterval(() => { if (mic.on && mic.label === "my answer") updateLiveMeter(); if (mic.on && mic.label === "drill answer") drillMeter(); }, 1000);
+
+$("scoreBtn").onclick = async () => {
+  stopMic();
+  const q = $("qBox").value.trim(), a = $("aBox").value.trim();
+  if (!q || !a) { toast("Need both the question and your answer"); return; }
+  const secs = updateLiveMeter();
+  const exchange = `INTERVIEWER: ${q}\nCANDIDATE: ${a}`;
+  await scoreInto($("scoreCard"), { mode: "Friend-led mock", question: q, exchange, turns: [{ q, a }], secs, onFollow: (f) => { $("qBox").value = f; $("aBox").value = ""; liveStart = 0; updateLiveMeter(); window.scrollTo({ top: 0, behavior: "smooth" }); runScaffold(false); } });
+};
+
+async function scoreInto(card, { mode, question, exchange, turns, secs, onFollow }) {
+  card.hidden = false; card.innerHTML = `<p class="eyebrow">Hiring committee</p><p class="thinking">Scoring against ${esc(R().comp)}…</p>`;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  let s;
+  try {
+    const text = await ai(stableContext(R()), scoreTask(R(), exchange, secs), { kind: "score" });
+    s = parseJSON(text);
+  } catch (e) { card.innerHTML = `<p class="eyebrow">Hiring committee</p><p class="err">${esc(aiError(e))}</p>`; return; }
+  const attempt = { id: "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: Date.now(), round: R().id, mode, question, turns, secs: Math.round(secs), score: s };
+  await store.save(attempt);
+  renderScore(card, attempt, onFollow);
+  renderLog();
+}
+
+function verdictClass(v = "") { return /strong|^hire/i.test(v) ? "v-good" : /lean hire/i.test(v) ? "v-mid" : "v-bad"; }
+function renderScore(card, attempt, onFollow) {
+  const s = attempt.score || {}; const sc = s.scores || {};
+  const dims = [["strategy", "Strategy"], ["relevance", "Relevance"], ["expertise", "Expertise"], ["clarity", "Clarity & structure"], ["evidence", "Evidence & ownership"], ["presence", "Executive presence"]];
+  card.innerHTML = `
+    <p class="eyebrow">Hiring committee · ${esc(s.type || "")}</p>
+    <div class="score-head"><span class="score-big mono">${esc(s.overall ?? "–")}</span><span class="muted">/10</span><span class="verdict ${verdictClass(s.verdict)}">${esc(s.verdict || "")}</span></div>
+    <p style="margin-top:8px"><b>Biggest gap:</b> ${esc(s.biggestGap || "")}</p>
+    <div class="bars">${dims.map(([k, l]) => `<span>${l}</span><span class="bar"><i style="width:${(Number(sc[k]) || 0) * 10}%"></i></span><span class="mono">${esc(sc[k] ?? "–")}</span>`).join("")}</div>
+    ${(s.strengths || []).length ? `<h3>Working</h3><ul>${s.strengths.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    <h3>Fix next</h3><ol>${(s.improvements || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+    ${(s.unverifiedClaims || []).length ? `<h3 class="err">Claims to verify before using</h3><ul>${s.unverifiedClaims.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    ${s.followUp ? `<h3>Follow-up probe</h3><div class="followup">${esc(s.followUp)}</div>` : ""}
+    <details style="margin-top:10px"><summary><b>Model answer</b></summary><div class="md" style="margin-top:6px">${md(s.rewrite || "")}</div></details>
+    <div>${(s.weakAreas || []).map((t) => `<span class="tag">${esc(t)}</span>`).join("")}</div>
+    <div class="row" style="margin-top:10px">
+      ${onFollow && s.followUp ? `<button class="primary sm" data-act="follow">Practice the follow-up</button>` : ""}
+      <button class="sm" data-act="say">Read follow-up aloud</button>
+      <span class="hint">Saved to your log</span>
+    </div>`;
+  card.querySelector('[data-act="follow"]')?.addEventListener("click", () => onFollow(s.followUp));
+  card.querySelector('[data-act="say"]')?.addEventListener("click", () => speak(s.followUp || ""));
+}
+
+/* =================== MODE A+: continuous listening =================== */
+const auto = { processed: 0, asked: [], history: [], view: -1, hold: false, detecting: false, pending: false, lastCheckAt: 0, wake: null };
+const LEN = {
+  concise: "Keep the main answer to 120-170 words (about 60 seconds spoken). Two probe lines, not three.",
+  standard: "Keep the main answer to 200-280 words (about 90 seconds spoken).",
+  comprehensive: "Main answer 320-450 words (2-3 minutes spoken).",
+};
+/* Stage 1: tiny, fast classifier. No big context, one line out. */
+const detectTask = (r, earlier, fresh, asked) => `You monitor a live speech-to-text transcript of a MOCK job interview (practice) for the "${r.comp}" round. Speakers are not labeled; expect recognition errors.
+Already answered: ${asked.length ? asked.map((q) => `"${q}"`).join("; ") : "none"}
+Earlier context: """${earlier || "(start)"}"""
+NEW text: """${fresh}"""
+
+Classify the NEW text and output exactly ONE line, nothing else:
+QUESTION: <the interviewer's question or prompt, cleaned up>
+UPDATE: <the question it refers to> || <the interviewer's clarification>
+SKIP: <3-5 word reason>
+
+QUESTION = a new interview question or prompt the candidate must answer now, including follow-ups, "what do you mean by...", "what clarifying questions would you ask?", and casual-sounding real prompts: "tell me about yourself", "walk me through your background", "why ${COMPANY} / why this role", "what are you working on now", "do you have any questions for me".
+UPDATE = the interviewer answering a clarifying question the candidate asked, or adding constraints to the latest question.
+SKIP = greetings and pleasantries, audio checks, timing and logistics, the interviewer introducing themselves, transitions with no prompt ("great", "let's move on"), the candidate talking (including his own clarifying questions), filler, or a question already answered.`;
+/* Stage 2: the answer, streamed with full context. */
+const answerTask = (r, kind, q, clar, recent) => `TASK: COMPLETE PRACTICE ANSWER (mock interview, practice only)
+Round: ${r.who}, ${r.comp}.
+Interviewer's question: "${q}"
+${kind === "update" ? `The interviewer then clarified: "${clar}". Build the answer around that clarification and leave out the Ask first line.\n` : ""}Recent conversation (speech-to-text, context only): """${recent}"""
+Special cases: if asked what clarifying questions he would ask, the answer body is the 3-4 best clarifying questions with why each matters and how it changes his approach. If asked "do you have any questions for me", give 3 strong questions for this interviewer, each with a one-line reason.
+
+Markdown, no preamble, start immediately with the Gist line:
+${ANSWER_FORMAT}
+LENGTH (overrides any length above): ${LEN[settings.alen] || LEN.standard}
+Follow the playbook anatomy and the COMPLETE ANSWER STANDARD. Director altitude.`;
+
+function convoCommitted() { return $("convoBox").value.replace(/\s*…[^…]*$/, ""); }
+function setAutoStatus(t) { $("autoStatus").textContent = t; }
+
+/* compact layout while dictating: hides chrome, answer box + strip fill the space above the keyboard */
+const focusOn = () => document.body.classList.contains("compact");
+function enterFocus() {
+  if (!$("consentChk").checked) { toast("Tick the consent box first"); $("convoBox").blur(); $("consentCard").scrollIntoView({ behavior: "smooth" }); return false; }
+  if (!focusOn()) { document.body.classList.add("compact"); $("autoDoneBtn").hidden = false; setTimeout(() => $("answerCard").scrollIntoView({ block: "start" }), 50); }
+  return true;
+}
+function exitFocus() { document.body.classList.remove("compact"); $("autoDoneBtn").hidden = true; }
+$("autoDoneBtn").onclick = () => { if (mic.on && mic.label === "conversation") stopMic(); $("convoBox").blur(); exitFocus(); };
+
+function renderPanel() {
+  const h = auto.history, body = $("apBody");
+  if (!h.length) {
+    $("apPos").textContent = "0/0"; $("apPrev").disabled = $("apNext").disabled = true; $("apNew").hidden = true;
+    $("apQ").textContent = "Waiting for the first question…";
+    body.innerHTML = `<div class="md"><p class="muted">Answers appear here as soon as a real question is detected. Small talk is skipped. This box stays still while you dictate below.</p><p class="muted small">Scenario and product answers open with <b>Ask first</b>: the clarifying questions to say out loud.</p></div>`;
+    return;
+  }
+  if (auto.view < 0 || auto.view >= h.length) auto.view = h.length - 1;
+  const e = h[auto.view];
+  $("apPos").textContent = `${auto.view + 1}/${h.length}`;
+  $("apQ").textContent = (e.kind === "update" ? `Updated (${e.clar}) · ` : "") + e.q;
+  body.innerHTML = `<div class="md">${e.a ? md(e.a) : `<span class="thinking">Question caught. Writing your answer…</span>`}</div>`;
+  $("apPrev").disabled = auto.view === 0; $("apNext").disabled = auto.view === h.length - 1;
+  $("apNew").hidden = auto.view === h.length - 1;
+}
+function showEntry(i) { auto.view = i; renderPanel(); $("apBody").scrollTop = 0; }
+$("apPrev").onclick = () => showEntry(Math.max(0, auto.view - 1));
+$("apNext").onclick = () => showEntry(Math.min(auto.history.length - 1, auto.view + 1));
+$("apNew").onclick = () => showEntry(auto.history.length - 1);
+$("apHold").onclick = () => { auto.hold = !auto.hold; $("apHold").setAttribute("aria-pressed", auto.hold); $("apHold").textContent = auto.hold ? "Holding" : "Hold"; if (!auto.hold && auto.history.length) showEntry(auto.history.length - 1); };
+
+function renderFeed() {
+  const feed = $("autoFeed"); feed.innerHTML = ""; $("histCount").textContent = auto.history.length;
+  auto.history.slice().reverse().forEach((e) => {
+    const card = document.createElement("div"); card.className = "card autocard";
+    card.innerHTML = `<p class="eyebrow">${new Date(e.ts).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}${e.kind === "update" ? " · updated after clarification" : ""}</p><p class="q">${esc(e.q)}</p><div class="md">${md(e.a || "")}</div>
+      <div class="row" style="margin-top:8px"><button class="sm" data-act="copy">Copy</button><button class="sm" data-act="drill">Drill this later</button></div>`;
+    card.querySelector('[data-act="copy"]').onclick = () => copyText(e.q + "\n\n" + (e.a || ""));
+    card.querySelector('[data-act="drill"]').onclick = () => { exitFocus(); location.hash = "drill"; startDrill(e.q); };
+    feed.append(card);
+  });
+}
+function addEntry(kind, q, clar) {
+  const e = { id: Date.now() + Math.random(), kind, q, clar, a: "", ts: Date.now() };
+  const reading = auto.hold || $("apBody").scrollTop > 60;
+  auto.history.push(e);
+  if (!reading || auto.history.length === 1) showEntry(auto.history.length - 1); else renderPanel();
+  $("histCount").textContent = auto.history.length;
+  return e;
+}
+function updateEntry(e) { if (auto.history[auto.view] === e) { const box = $("apBody").querySelector(".md"); if (box) box.innerHTML = md(e.a); } }
+
+function startAnswer(kind, q, clar, text) {
+  if (kind === "question") auto.asked.push(q);
+  const e = addEntry(kind, q, clar);
+  setAutoStatus(`Question caught · writing answer…`);
+  const t0 = performance.now(); let first = null;
+  ai(stableContext(R()), answerTask(R(), kind, q, clar, text.slice(-1200)), {
+    kind: "answer",
+    onText: (t) => { if (first === null) { first = ((performance.now() - t0) / 1000).toFixed(1); setAutoStatus(`Answering · first words in ${first}s`); } e.a = t; updateEntry(e); },
+  }).then((t) => {
+    e.a = t; updateEntry(e); renderFeed();
+    setAutoStatus(`Answered · first words in ${first ?? "–"}s · ${mic.on ? "listening" : "keep dictating"}`);
+  }).catch((err) => { e.a = `*${aiError(err)}*`; updateEntry(e); setAutoStatus(aiError(err)); });
+}
+
+async function autoCheck(force) {
+  if (!$("consentChk").checked) { setAutoStatus("Tick the consent box above to start answering."); return; }
+  const text = convoCommitted();
+  if (auto.processed > text.length) auto.processed = 0;
+  const fresh = text.slice(auto.processed).trim();
+  if (!fresh || (!force && fresh.split(/\s+/).length < 2)) return;
+  if (auto.detecting) { auto.pending = true; return; }
+  auto.detecting = true; auto.lastCheckAt = Date.now();
+  const upto = text.length, earlier = text.slice(Math.max(0, auto.processed - 700), auto.processed);
+  setAutoStatus("Pause heard · checking for a question…");
+  try {
+    const out = (await ai("", detectTask(R(), earlier, fresh, auto.asked.slice(-8)), { kind: "detect" })).trim();
+    auto.processed = upto;
+    const line = (out.split("\n").find((l) => /^(QUESTION|UPDATE|SKIP)\b/i.test(l.trim())) || out).trim();
+    let m;
+    if ((m = line.match(/^QUESTION:\s*(.+)/i))) startAnswer("question", m[1].trim(), "", text);
+    else if ((m = line.match(/^UPDATE:\s*(.+?)\s*\|\|\s*(.+)/i))) startAnswer("update", m[1].trim(), m[2].trim(), text);
+    else setAutoStatus(`Skipped: ${line.replace(/^SKIP:?\s*/i, "") || "no question"} · ${mic.on ? "listening" : "keep dictating"}`);
+  } catch (e) {
+    auto.processed = upto; setAutoStatus(aiError(e));
+  } finally {
+    auto.detecting = false;
+    if (auto.pending) { auto.pending = false; autoCheck(false); }
+  }
+}
+
+$("convoBox").addEventListener("focus", () => { if (ls.get("liveMode", "auto") === "auto") enterFocus(); });
+$("convoBox").addEventListener("blur", () => setTimeout(() => { if (!(mic.on && mic.label === "conversation") && document.activeElement !== $("convoBox")) exitFocus(); }, 400));
+$("convoBox").addEventListener("input", () => { const box = $("convoBox"); box.scrollTop = box.scrollHeight; });
+/* Watch the transcript directly: iOS dictation doesn't always fire input events. */
+const watch = { val: "", changedAt: 0 };
+setInterval(() => {
+  if ($("autoWrap").hidden || $("view-live").hidden || !$("consentChk").checked) return;
+  const v = convoCommitted(), now = Date.now();
+  if (v !== watch.val) { watch.val = v; watch.changedAt = now; const box = $("convoBox"); box.scrollTop = box.scrollHeight; return; }
+  if (auto.detecting || v.length <= auto.processed) return;
+  const newWords = v.slice(auto.processed).trim().split(/\s+/).filter(Boolean).length;
+  if (newWords >= 2 && now - watch.changedAt >= settings.silence) autoCheck(false);
+  else if (newWords >= 25 && now - auto.lastCheckAt >= 6000) autoCheck(false);
+}, 400);
+
+$("autoListenBtn").onclick = async () => {
+  const wasOn = mic.on && mic.label === "conversation";
+  toggleMic($("convoBox"), "conversation", null);
+  if (!wasOn && mic.on) { enterFocus(); setAutoStatus("Listening. Answers appear in the box above."); try { auto.wake = await navigator.wakeLock?.request("screen"); } catch {} }
+  else if (wasOn) { try { auto.wake?.release(); } catch {} setAutoStatus("Stopped."); autoCheck(false); }
+};
+$("autoNowBtn").onclick = () => autoCheck(true);
+$("autoClearBtn").onclick = () => { $("convoBox").value = ""; auto.processed = 0; auto.asked = []; auto.history = []; auto.view = -1; renderPanel(); renderFeed(); setAutoStatus("Cleared."); };
+function setLiveMode(m) {
+  ls.set("liveMode", m);
+  $("autoWrap").hidden = m !== "auto"; $("stepWrap").hidden = m === "auto";
+  $("modeAutoBtn").setAttribute("aria-pressed", m === "auto"); $("modeStepBtn").setAttribute("aria-pressed", m !== "auto");
+}
+$("modeAutoBtn").onclick = () => setLiveMode("auto");
+$("modeStepBtn").onclick = () => { if (mic.on && mic.label === "conversation") stopMic(); exitFocus(); setLiveMode("step"); };
+setLiveMode(ls.get("liveMode", "auto"));
+renderPanel();
+
+/* =================== MODE B: solo adversarial drill =================== */
+const drill = { turns: [], ask: "", ctl: null, start: 0, totalSecs: 0 };
+function renderDrillSetup() {
+  const r = R();
+  $("drillTitle").textContent = `${r.who} · ${r.comp}`;
+  $("drillPersona").textContent = r.persona;
+  $("drillQSel").innerHTML = r.questions.map((q, i) => `<option value="${i}">${i + 1}. ${esc(q)}</option>`).join("");
+}
+$("drillRandomBtn").onclick = () => { $("drillQSel").value = String(Math.floor(Math.random() * R().questions.length)); };
+$("drillStartBtn").onclick = () => startDrill(R().questions[Number($("drillQSel").value)]);
+function startDrill(q) {
+  drill.turns = []; drill.ask = q; drill.totalSecs = 0;
+  $("drillStage").hidden = false; $("drillScore").hidden = true; $("drillExchange").innerHTML = "";
+  setDrillAsk(q);
+  $("drillStage").scrollIntoView({ behavior: "smooth" });
+}
+function setDrillAsk(q) {
+  drill.ask = q; $("drillAsk").textContent = `${R().who}: ${q}`; $("drillBox").value = ""; drill.start = 0; drillMeter();
+  if ($("drillVoice").checked) speak(q);
+}
+function drillMeter() { return meter($("drillMeter"), $("drillBox").value, drill.start); }
+$("drillBox").addEventListener("input", () => { if (!drill.start && $("drillBox").value.trim()) drill.start = Date.now(); drillMeter(); });
+$("drillMicBtn").onclick = () => { if (!(mic.on && mic.label === "drill answer")) drill.start = Date.now(); toggleMic($("drillBox"), "drill answer", null); };
+function drillExchangeText() { return drill.turns.map((t) => `INTERVIEWER: ${t.q}\nCANDIDATE: ${t.a}`).join("\n"); }
+function renderDrillExchange() {
+  $("drillExchange").innerHTML = drill.turns.map((t) => `<div class="ex int"><b>${esc(R().who)}</b>${esc(t.q)}</div><div class="ex"><b>You</b>${esc(t.a)}</div>`).join("");
+}
+$("drillSubmitBtn").onclick = async () => {
+  stopMic();
+  const a = $("drillBox").value.trim(); if (!a) { toast("Answer first"); return; }
+  drill.totalSecs += drillMeter();
+  drill.turns.push({ q: drill.ask, a }); renderDrillExchange();
+  if (drill.turns.length >= 4) return endDrill();
+  $("drillAsk").innerHTML = `<span class="thinking">${esc(R().who)} is thinking of a follow-up…</span>`; $("drillBox").value = "";
+  try {
+    const f = await ai(stableContext(R()), followTask(R(), drillExchangeText()), { kind: "followup" });
+    setDrillAsk(f.trim().replace(/^["']|["']$/g, ""));
+  } catch (e) { $("drillAsk").innerHTML = `<span class="err">${esc(aiError(e))}</span>`; }
+};
+$("drillEndBtn").onclick = () => {
+  stopMic();
+  const a = $("drillBox").value.trim();
+  if (a) { drill.totalSecs += drillMeter(); drill.turns.push({ q: drill.ask, a }); renderDrillExchange(); }
+  endDrill();
+};
+async function endDrill() {
+  if (!drill.turns.length) { toast("Answer at least once"); return; }
+  $("drillAsk").textContent = "Round over.";
+  await scoreInto($("drillScore"), { mode: "Solo drill", question: drill.turns[0].q, exchange: drillExchangeText(), turns: drill.turns.slice(), secs: drill.totalSecs, onFollow: (f) => startDrill(f) });
+}
+
+/* =================== MODE C: final 15 =================== */
+function renderFinal() {
+  const r = R();
+  const v = $("view-final");
+  const when = r.start ? `${fmtPT(r.start)} · <b>${untilText(r.start)}</b>` : "Use before any round";
+  v.innerHTML = `
+    <div class="card"><p class="eyebrow">Final 15 minutes</p><h2>${esc(r.who)} · ${esc(r.comp)}</h2><p class="small muted" style="margin-top:4px">${when}</p>
+      <div class="row" style="margin-top:8px"><button class="primary sm" id="readAloudBtn">Read key points aloud</button><button class="sm" id="stopReadBtn">Stop</button></div></div>
+    <div class="card"><h3>Three key messages</h3><ol>${r.keyMessages.map((m) => `<li>${esc(m)}</li>`).join("")}</ol></div>
+    <div class="card"><h3>Best two stories</h3>${r.stories.map((k) => `<p><b>${esc(STORIES[k].title)}</b></p><ul class="small">${STORIES[k].facts.slice(0, 4).map((f) => `<li>${esc(f)}</li>`).join("")}</ul>`).join("")}</div>
+    <div class="card"><h3>Top eight questions</h3><ul class="qlist">${r.questions.map((q, i) => `<li style="flex-wrap:wrap"><span class="qn">${i + 1}</span><span class="qt">${esc(q)}</span><span class="row" style="gap:6px"><button class="sm" data-model="${i}">Model answer</button><button class="sm ghost" data-drill="${i}">Drill</button></span><div class="md small" data-modelout="${i}" style="flex-basis:100%" hidden></div></li>`).join("")}</ul></div>
+    <div class="card"><h3>Must avoid</h3><ul>${r.mustAvoid.map((m) => `<li>${esc(m)}</li>`).join("")}</ul></div>
+    <div class="card"><h3>Three probes to expect</h3><ul>${r.probes.slice(0, 3).map((m) => `<li>${esc(m)}</li>`).join("")}</ul></div>
+    <div class="card"><h3>Ask them</h3><p>${esc(r.askThem)}</p></div>
+    <div class="card flat small muted">Reminder: close this tool before the real interview. Outside AI assistance and recording are usually prohibited.</div>`;
+  $("readAloudBtn").onclick = () => speak(`${r.comp}. Key messages. ${r.keyMessages.join(" ")} Avoid: ${r.mustAvoid.join(" ")}`);
+  $("stopReadBtn").onclick = () => { try { speechSynthesis.cancel(); } catch {} };
+  v.querySelectorAll("[data-drill]").forEach((b) => b.onclick = () => { location.hash = "drill"; $("drillQSel").value = b.dataset.drill; startDrill(r.questions[Number(b.dataset.drill)]); });
+  v.querySelectorAll("[data-model]").forEach((b) => b.onclick = () => modelAnswer(r, Number(b.dataset.model), b, v.querySelector(`[data-modelout="${b.dataset.model}"]`)));
+}
+const modelCache = {};
+async function modelAnswer(r, i, btn, out) {
+  const key = `ma2:${r.id}:${i}`;
+  if (!out.hidden && out.dataset.done) { out.hidden = true; btn.textContent = "Model answer"; return; }
+  out.hidden = false; btn.textContent = "Hide answer";
+  const cached = modelCache[key] || ls.get(key);
+  if (cached) { out.innerHTML = md(cached); out.dataset.done = "1"; return; }
+  out.innerHTML = `<span class="thinking">Writing a complete answer… (thorough mode, can take up to a minute)</span>`;
+  try {
+    const text = await ai(stableContext(r), scaffoldTask(r.questions[i], r), { kind: "model", onText: (t) => { out.innerHTML = md(t); } });
+    modelCache[key] = text; ls.set(key, text);
+    out.innerHTML = md(text) + `<div class="row" style="margin-top:6px"><button class="sm" data-copy>Copy</button><button class="sm ghost" data-regen>Rewrite</button></div>`;
+    out.dataset.done = "1";
+    out.querySelector("[data-copy]").onclick = () => copyText(r.questions[i] + "\n\n" + text);
+    out.querySelector("[data-regen]").onclick = () => { delete modelCache[key]; ls.del(key); out.dataset.done = ""; out.hidden = true; modelAnswer(r, i, btn, out); };
+  } catch (e) { out.innerHTML = `<p class="err">${esc(aiError(e))}</p>`; }
+}
+
+/* =================== MODE D: log =================== */
+function renderLog() {
+  $("readyGrid").innerHTML = ROUNDS.map((r) => {
+    const mine = attempts.filter((a) => a.round === r.id && a.score?.overall != null);
+    const last = mine.slice(0, 3); const avg = last.length ? (last.reduce((s, a) => s + Number(a.score.overall), 0) / last.length) : null;
+    const cls = avg == null ? "" : avg >= 8 ? "v-good" : avg >= 6.5 ? "v-mid" : "v-bad";
+    return `<div><span class="small muted">${esc(r.short)} · ${esc(r.comp)}</span><b class="mono ${cls}">${avg == null ? "–" : avg.toFixed(1)}</b><span class="hint">${mine.length} scored</span></div>`;
+  }).join("");
+  const tags = {}; attempts.slice(0, 15).forEach((a) => (a.score?.weakAreas || []).forEach((t) => { const k = String(t).toLowerCase(); tags[k] = (tags[k] || 0) + 1; }));
+  const top = Object.entries(tags).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const gaps = [...new Set(attempts.slice(0, 15).flatMap((a) => a.score?.improvements?.slice(0, 1) || []))].slice(0, 3);
+  $("weakCard").innerHTML = `<p class="eyebrow">Improvement priorities</p>${top.length ? `<div>${top.map(([t, n]) => `<span class="tag">${esc(t)} ×${n}</span>`).join("")}</div>` : `<p class="muted small">Score a few answers and your recurring weak spots will show here.</p>`}${gaps.length ? `<ol class="small" style="margin-top:8px">${gaps.map((g) => `<li>${esc(g)}</li>`).join("")}</ol>` : ""}`;
+  const list = $("logList");
+  if (!attempts.length) { list.innerHTML = `<p class="muted">No scored answers yet. Run a friend-led mock or a solo drill; each scorecard is saved here.</p>`; return; }
+  list.innerHTML = attempts.map((a) => {
+    const r = ROUNDS.find((x) => x.id === a.round) || { short: a.round }; const s = a.score || {};
+    return `<details class="logitem card" style="padding:10px 12px"><summary><span class="logscore mono ${verdictClass(s.verdict)}">${esc(s.overall ?? "–")}</span><span style="flex:1;min-width:0"><b>${esc(r.short)}</b> · ${esc(a.question)}<br><span class="hint">${new Date(a.ts).toLocaleString()} · ${esc(a.mode)} · ${a.secs || 0}s</span></span></summary>
+      <div style="margin-top:8px">${(a.turns || []).map((t) => `<div class="ex int"><b>Question</b>${esc(t.q)}</div><div class="ex"><b>Your answer</b>${esc(t.a)}</div>`).join("")}
+      <p><b>Biggest gap:</b> ${esc(s.biggestGap || "")}</p><ol class="small">${(s.improvements || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ol>
+      ${s.followUp ? `<p class="small"><b>Follow-up to practice:</b> ${esc(s.followUp)}</p>` : ""}
+      <details><summary class="small"><b>Stronger version</b></summary><div class="md small">${md(s.rewrite || "")}</div></details>
+      <div class="row" style="margin-top:8px"><button class="sm" data-redo="${a.id}">Practice again</button><button class="sm ghost" data-del="${a.id}">Delete</button></div></div></details>`;
+  }).join("");
+  list.querySelectorAll("[data-del]").forEach((b) => b.onclick = async () => { await store.remove(b.dataset.del); renderLog(); toast("Deleted"); });
+  list.querySelectorAll("[data-redo]").forEach((b) => b.onclick = () => {
+    const a = attempts.find((x) => x.id === b.dataset.redo); if (!a) return;
+    setRound(a.round); location.hash = "drill"; startDrill(a.score?.followUp || a.question);
+  });
+}
+function logMarkdown() {
+  return `# Interview practice log\n\n` + attempts.map((a) => {
+    const r = ROUNDS.find((x) => x.id === a.round) || { who: a.round, comp: "" }; const s = a.score || {};
+    return `## ${r.who} · ${r.comp} · ${new Date(a.ts).toLocaleString()} · ${s.overall ?? "–"}/10 (${s.verdict || ""})\n\n` +
+      (a.turns || []).map((t) => `**Q:** ${t.q}\n\n**A:** ${t.a}\n`).join("\n") +
+      `\n**Biggest gap:** ${s.biggestGap || ""}\n\n**Fix next:**\n${(s.improvements || []).map((x) => `- ${x}`).join("\n")}\n\n**Follow-up:** ${s.followUp || ""}\n\n**Weak areas:** ${(s.weakAreas || []).join(", ")}\n`;
+  }).join("\n---\n\n");
+}
+$("copyLogBtn").onclick = () => copyText(logMarkdown());
+$("dlLogBtn").onclick = () => {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([logMarkdown()], { type: "text/markdown" }));
+  a.download = "interview-practice-log.md"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+/* =================== setup & status =================== */
+function renderStatus() {
+  const inClaude = !!window.claude?.use;
+  const rows = [
+    ["Answer coaching (AI)", sampleFn ? ["p-ok", "Connected"] : settings.apiKey ? ["p-ok", "API key"] : (!aiReady ? ["p-mid", "Checking…"] : ["p-no", "Not connected"]),
+      sampleFn ? "Uses your claude.ai account. The first request asks you to allow it." : settings.apiKey ? "Requests go straight from this browser to Anthropic." : "Add an API key below, or open the hosted link on claude.ai."],
+    ["Live mic transcription", !SR ? ["p-no", "Not supported"] : mic.blocked ? ["p-no", "Blocked here"] : inClaude ? ["p-mid", "Unlikely here"] : ["p-ok", "Supported"],
+      !SR ? "This browser has no speech recognition. Use the keyboard 🎤 (iPhone dictation) or type." : mic.blocked ? "This page isn't allowed to use the microphone. Tap a text box and use the keyboard 🎤 to dictate." : inClaude ? "claude.ai pages usually can't use the mic directly; the app falls back to keyboard dictation automatically." : "Works in Safari (iPhone or Mac), Chrome and Edge on an https page. Tap Start listening and allow the microphone; on iPhone, Dictation must be on (Settings → General → Keyboard)."],
+    ["Keyboard dictation (iPhone)", ["p-ok", "Works"], "Tap any text box, then the 🎤 on the keyboard. Works in Safari and in apps."],
+    ["Read questions aloud", ("speechSynthesis" in window) ? ["p-ok", "Available"] : ["p-no", "Unavailable"], "Used by Solo drill and Final 15. On iPhone, the ring/silent switch can mute it."],
+    ["Who is speaking", ["p-mid", "Manual"], "There's no automatic speaker detection. You choose: Listen to interviewer vs Record my answer."],
+    ["Practice history", store.mode === "db" ? ["p-ok", "Synced"] : store.mode === "local" ? ["p-mid", "This browser"] : ["p-no", "Session only"],
+      store.mode === "db" ? "Saved to this page's private storage on your claude.ai account, so it follows you across devices. Only you can read it." : store.mode === "local" ? "Saved in this browser only; survives refresh, not other devices." : "This browser blocks storage; history is lost when you close the page. Copy the log to keep it."],
+  ];
+  $("statusTable").innerHTML = rows.map(([a, [c, t], d]) => `<tr><td><b>${a}</b><br><span class="hint">${d}</span></td><td style="text-align:right"><span class="pill ${c}">${t}</span></td></tr>`).join("");
+  $("storageWhere").textContent = rows[5][2];
+  $("dlLogBtn").hidden = inClaude;
+}
+function renderApiCard() { $("apiKeyRow").hidden = !!sampleFn; }
+$("apiKey").value = settings.apiKey; $("rememberKey").checked = !!settings.apiKey;
+$("apiKey").addEventListener("input", () => { settings.apiKey = $("apiKey").value.trim(); if ($("rememberKey").checked) ls.set("apiKey", settings.apiKey); renderStatus(); });
+$("rememberKey").addEventListener("change", () => $("rememberKey").checked ? ls.set("apiKey", settings.apiKey) : ls.del("apiKey"));
+$("model").value = settings.model; $("model").onchange = () => { settings.model = $("model").value; ls.set("model", settings.model); };
+$("speed").value = settings.speed; $("speed").onchange = () => { settings.speed = $("speed").value; ls.set("speed", settings.speed); };
+$("silence").value = settings.silence; const showSil = () => $("silenceVal").textContent = (settings.silence / 1000).toFixed(1) + "s"; showSil();
+$("silence").oninput = () => { settings.silence = Number($("silence").value); ls.set("silence2", String(settings.silence)); showSil(); setMicUI(); };
+$("alen").value = settings.alen; $("alen").onchange = () => { settings.alen = $("alen").value; ls.set("alen", settings.alen); };
+$("autoScaffold").checked = settings.autoScaffold; $("autoScaffold").onchange = () => { settings.autoScaffold = $("autoScaffold").checked; ls.set("autoScaffold", settings.autoScaffold ? "1" : "0"); };
+$("saveNotesBtn").onclick = async () => { await store.saveNotes($("notesBox").value); $("notesSaved").textContent = "Saved. The coach now treats these as verified."; };
+$("delAllBtn").onclick = () => { $("delAllConfirm").hidden = false; $("delAllBtn").textContent = "Cancel"; $("delAllBtn").onclick = cancelDel; };
+function cancelDel() { $("delAllConfirm").hidden = true; $("delAllBtn").textContent = "Delete all practice data"; $("delAllBtn").onclick = () => { $("delAllConfirm").hidden = false; $("delAllBtn").textContent = "Cancel"; $("delAllBtn").onclick = cancelDel; }; }
+$("delAllConfirm").onclick = async () => { await store.wipe(); $("notesBox").value = ""; cancelDel(); renderLog(); toast("All practice data deleted"); };
+
+/* =================== rounds, tabs, boot =================== */
+function renderChips() {
+  $("roundChips").innerHTML = ROUNDS.map((r) => `<button class="chip" data-r="${r.id}" aria-pressed="${r.id === roundId}">${esc(r.short)}<small>${esc(r.comp)}</small></button>`).join("");
+  $("roundChips").querySelectorAll(".chip").forEach((c) => c.onclick = () => setRound(c.dataset.r));
+  const r = R();
+  $("roundLine").innerHTML = r.start ? `<span><b>${esc(r.who)}</b>, ${esc(r.title)}</span><span class="mono">${fmtPT(r.start)}</span><span>${untilText(r.start)}</span>` : `<span><b>${esc(r.comp)}</b>: intro, why ${COMPANY}, core themes, closing</span>`;
+}
+function setRound(id) {
+  roundId = id; ls.set("round", id);
+  renderChips(); renderLiveHeader(); renderDrillSetup(); renderFinal();
+}
+function showTab() {
+  const tab = (location.hash || "#live").slice(1);
+  const valid = ["live", "drill", "final", "log", "setup"].includes(tab) ? tab : "live";
+  for (const t of ["live", "drill", "final", "log", "setup"]) $("view-" + t).hidden = t !== valid;
+  document.querySelectorAll("nav.tabs a").forEach((a) => { if (a.dataset.tab === valid) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+  if (valid === "final") renderFinal();
+  if (valid === "log") renderLog();
+  if (valid === "setup") renderStatus();
+}
+window.addEventListener("hashchange", () => { if (location.hash && location.hash !== "#live") exitFocus(); showTab(); });
+setInterval(renderChips, 60000);
+
+setRound(roundId); showTab(); setMicUI(); updateLiveMeter(); renderLog(); renderStatus();
+(async () => {
+  await store.init();
+  $("notesBox").value = userNotes;
+  renderLog(); renderStatus();
+})();
+initAI();
+
+} // end bootApp
+</script>
+
+</html>
