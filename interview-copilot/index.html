@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interview Copilot</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #16181d; --muted: #646b78; --line: #e2e5ea;
+    --accent: #3b5bdb; --accent-ink: #ffffff; --live: #e03131; --ok: #2f9e44; --warn: #e8590c;
+    --code-bg: #f1f3f5; --q-bg: #eef2ff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a21; --ink: #e8eaef; --muted: #9aa1ae; --line: #2a2f3a;
+      --accent: #748ffc; --accent-ink: #0f1115; --live: #ff6b6b; --ok: #69db7c; --warn: #ffa94d;
+      --code-bg: #0b0d11; --q-bg: #1d2333;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: center; gap: 12px; padding: 12px 20px;
+    border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0 8px 0 0; }
+  .grow { flex: 1; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+    padding: 7px 14px; border-radius: 8px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.live { background: var(--live); border-color: var(--live); color: #fff; }
+  button:disabled { opacity: .5; cursor: default; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); display: inline-block; }
+  .dot.on { background: var(--live); animation: pulse 1.2s infinite; }
+  .dot.paused { background: var(--warn); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .status { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  main { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; gap: 16px; padding: 16px 20px; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 12px 16px; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+  .side { display: flex; flex-direction: column; gap: 12px; }
+  label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; display: block; margin-bottom: 4px; }
+  textarea, input, select { width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  textarea { resize: vertical; min-height: 70px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
+  .check input { width: auto; }
+  details summary { cursor: pointer; font-weight: 600; }
+  .hint { font-size: 12px; color: var(--muted); }
+  .transcript { min-height: 64px; font-size: 16px; }
+  .transcript .final { color: var(--ink); }
+  .transcript .interim { color: var(--muted); font-style: italic; }
+  .ask { display: flex; gap: 8px; margin-top: 10px; }
+  .feed { display: flex; flex-direction: column; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .card.latest { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .q { background: var(--q-bg); padding: 10px 14px; font-weight: 600; display: flex; gap: 10px; }
+  .q span.t { flex: 1; }
+  .meta { font-weight: 400; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .a { padding: 12px 16px; font-size: 16.5px; line-height: 1.6; }
+  .a p { margin: 0 0 .6em; }
+  .a ul, .a ol { margin: 0 0 .6em; padding-left: 1.3em; }
+  .a pre { background: var(--code-bg); padding: 10px; border-radius: 8px; overflow-x: auto; font-size: 13.5px; }
+  .a code { background: var(--code-bg); padding: 1px 4px; border-radius: 4px; font-size: .92em; }
+  .a pre code { background: none; padding: 0; }
+  .a h3, .a h4 { margin: .4em 0 .3em; font-size: 1em; }
+  .thinking { color: var(--muted); font-style: italic; }
+  .err { color: var(--live); }
+  .tools { display: flex; gap: 6px; padding: 0 16px 12px; }
+  .tools button { padding: 3px 10px; font-size: 12.5px; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 10px; }
+  kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; font-size: 12px; background: var(--bg); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🎙️ Interview Copilot</h1>
+  <button id="listenBtn" class="primary">Start listening</button>
+  <button id="pauseBtn" disabled title="Ignore the mic while you speak (M)">Pause mic</button>
+  <span class="status"><span id="dot" class="dot"></span><span id="statusText">Idle</span></span>
+  <span class="grow"></span>
+  <span class="hint"><kbd>Space</kbd> answer now · <kbd>M</kbd> pause mic · <kbd>Esc</kbd> stop answer</span>
+  <button id="exportBtn">Export</button>
+  <button id="clearBtn">Clear</button>
+</header>
+
+<main>
+  <aside class="side">
+    <div class="panel">
+      <label for="apiKey">Anthropic API key</label>
+      <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+      <label class="check" style="margin-top:6px"><input id="rememberKey" type="checkbox"> Remember on this device</label>
+    </div>
+
+    <div class="panel">
+      <label for="role">Role / company</label>
+      <input id="role" placeholder="e.g. Senior Backend Engineer at Stripe">
+      <div style="height:10px"></div>
+      <label for="resume">Your resume / background</label>
+      <textarea id="resume" rows="6" placeholder="Paste your resume, key projects, metrics, stories…"></textarea>
+      <div style="height:10px"></div>
+      <label for="jd">Job description</label>
+      <textarea id="jd" rows="4" placeholder="Paste the job description…"></textarea>
+      <div style="height:10px"></div>
+      <label for="notes">Extra notes / talking points</label>
+      <textarea id="notes" rows="3" placeholder="Why this company, salary range, stories to emphasize, things to avoid…"></textarea>
+    </div>
+
+    <div class="panel">
+      <details open>
+        <summary>Settings</summary>
+        <div style="height:10px"></div>
+        <div class="row">
+          <div>
+            <label for="model">Model</label>
+            <select id="model">
+              <option value="claude-opus-5-5">Opus 5.5 (best)</option>
+              <option value="claude-sonnet-5-5">Sonnet 5.5 (balanced)</option>
+              <option value="claude-haiku-5-5">Haiku 5.5 (fastest)</option>
+            </select>
+          </div>
+          <div>
+            <label for="effort">Thinking</label>
+            <select id="effort">
+              <option value="low">Low (fastest)</option>
+              <option value="medium">Medium</option>
+              <option value="high">High (slowest)</option>
+            </select>
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="row">
+          <div>
+            <label for="length">Answer length</label>
+            <select id="length">
+              <option value="short">Short: ~30s spoken</option>
+              <option value="medium" selected>Medium: ~60–90s spoken</option>
+              <option value="long">Detailed: ~2 min</option>
+              <option value="bullets">Bullet talking points only</option>
+            </select>
+          </div>
+          <div>
+            <label for="lang">Speech language</label>
+            <select id="lang">
+              <option>en-US</option><option>en-GB</option><option>en-IN</option><option>en-AU</option>
+              <option>es-ES</option><option>fr-FR</option><option>de-DE</option><option>zh-CN</option>
+              <option>ja-JP</option><option>pt-BR</option><option>hi-IN</option>
+            </select>
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <label for="pause">Answer after silence of: <span id="pauseVal"></span></label>
+        <input id="pause" type="range" min="600" max="4000" step="100" value="1400">
+        <label class="check" style="margin-top:8px"><input id="autoAnswer" type="checkbox" checked> Answer automatically when the interviewer pauses</label>
+        <label class="check"><input id="skipNonQ" type="checkbox" checked> Skip speech that isn't a question (e.g. my own answer)</label>
+      </details>
+    </div>
+  </aside>
+
+  <section style="display:flex;flex-direction:column;gap:14px;min-width:0">
+    <div class="panel">
+      <label>Live transcript</label>
+      <div id="transcript" class="transcript"><span class="interim">Press “Start listening”, then let the interviewer speak.</span></div>
+      <div class="ask">
+        <input id="manualQ" placeholder="…or type a question and press Enter">
+        <button id="answerNowBtn">Answer now</button>
+      </div>
+    </div>
+    <div id="feed" class="feed"><div class="empty">Answers will appear here, newest first.</div></div>
+  </section>
+</main>
+
+<script type="module">
+import Anthropic from "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.1.0/+esm";
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d = "") { try { const v = localStorage.getItem("icp:" + k); return v ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("icp:" + k, v); } catch {} },
+  del(k) { try { localStorage.removeItem("icp:" + k); } catch {} },
+};
+
+// ---------- persisted settings ----------
+const persisted = ["role", "resume", "jd", "notes", "model", "effort", "length", "lang", "pause"];
+for (const id of persisted) {
+  const v = store.get(id, null);
+  if (v !== null) $(id).value = v;
+  $(id).addEventListener("input", () => store.set(id, $(id).value));
+}
+for (const id of ["autoAnswer", "skipNonQ"]) {
+  const v = store.get(id, null);
+  if (v !== null) $(id).checked = v === "1";
+  $(id).addEventListener("change", () => store.set(id, $(id).checked ? "1" : "0"));
+}
+const savedKey = store.get("apiKey");
+if (savedKey) { $("apiKey").value = savedKey; $("rememberKey").checked = true; }
+const syncKey = () => $("rememberKey").checked ? store.set("apiKey", $("apiKey").value.trim()) : store.del("apiKey");
+$("apiKey").addEventListener("input", syncKey);
+$("rememberKey").addEventListener("change", syncKey);
+const showPause = () => $("pauseVal").textContent = (Number($("pause").value) / 1000).toFixed(1) + "s";
+$("pause").addEventListener("input", showPause); showPause();
+
+// ---------- state ----------
+const history = [];        // {q, a, skipped}
+let current = null;        // {controller, card}
+let finalBuf = "";         // finalized speech since last answer
+let interimBuf = "";
+let silenceTimer = null;
+let listening = false, paused = false;
+let rec = null;
+
+function setStatus(text, mode) {
+  $("statusText").textContent = text;
+  $("dot").className = "dot" + (mode ? " " + mode : "");
+}
+
+// ---------- speech recognition ----------
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) {
+  $("listenBtn").disabled = true;
+  setStatus("Speech recognition isn't supported here. Use Chrome or Edge (you can still type questions).");
+}
+
+function renderTranscript() {
+  const el = $("transcript");
+  el.textContent = "";
+  if (!finalBuf && !interimBuf) {
+    const s = document.createElement("span"); s.className = "interim";
+    s.textContent = listening ? (paused ? "Mic paused." : "Listening…") : "Not listening.";
+    el.append(s); return;
+  }
+  const f = document.createElement("span"); f.className = "final"; f.textContent = finalBuf + " ";
+  const i = document.createElement("span"); i.className = "interim"; i.textContent = interimBuf;
+  el.append(f, i);
+}
+
+function armSilenceTimer() {
+  clearTimeout(silenceTimer);
+  if (!$("autoAnswer").checked) return;
+  silenceTimer = setTimeout(() => {
+    if ((finalBuf + interimBuf).trim()) triggerAnswer({ auto: true });
+  }, Number($("pause").value));
+}
+
+function startListening() {
+  rec = new SR();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = $("lang").value;
+  rec.onresult = (e) => {
+    if (paused) return;
+    let interim = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalBuf = (finalBuf + " " + r[0].transcript).trim();
+      else interim += r[0].transcript;
+    }
+    interimBuf = interim.trim();
+    renderTranscript();
+    armSilenceTimer();
+  };
+  rec.onerror = (e) => {
+    if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+      stopListening();
+      setStatus("Microphone blocked. Allow mic access in the address bar, then try again.");
+    } else if (e.error === "network") {
+      setStatus("Speech service network error, retrying…", "on");
+    }
+  };
+  rec.onend = () => { if (listening) { try { rec.start(); } catch {} } }; // Chrome stops periodically; keep it alive
+  try { rec.start(); } catch {}
+  listening = true; paused = false;
+  $("listenBtn").textContent = "Stop listening"; $("listenBtn").className = "live";
+  $("pauseBtn").disabled = false; $("pauseBtn").textContent = "Pause mic";
+  setStatus("Listening", "on");
+  renderTranscript();
+}
+
+function stopListening() {
+  listening = false;
+  clearTimeout(silenceTimer);
+  try { rec && rec.stop(); } catch {}
+  $("listenBtn").textContent = "Start listening"; $("listenBtn").className = "primary";
+  $("pauseBtn").disabled = true;
+  setStatus("Idle");
+  renderTranscript();
+}
+
+function togglePause() {
+  if (!listening) return;
+  paused = !paused;
+  if (paused) { clearTimeout(silenceTimer); interimBuf = ""; }
+  $("pauseBtn").textContent = paused ? "Resume mic" : "Pause mic";
+  setStatus(paused ? "Mic paused (you're talking)" : "Listening", paused ? "paused" : "on");
+  renderTranscript();
+}
+
+$("listenBtn").onclick = () => listening ? stopListening() : startListening();
+$("pauseBtn").onclick = togglePause;
+$("lang").addEventListener("change", () => { if (listening) { stopListening(); startListening(); } });
+
+// ---------- prompt ----------
+const LENGTH = {
+  short: "About 60-90 words, roughly 30 seconds spoken.",
+  medium: "About 150-220 words, roughly 60-90 seconds spoken.",
+  long: "About 300-400 words, roughly 2 minutes spoken.",
+  bullets: "No prose: 4-6 terse bullet talking points the candidate can glance at while speaking.",
+};
+
+function buildSystem(allowSkip) {
+  const ctx = [
+    ["target_role", $("role").value], ["resume", $("resume").value],
+    ["job_description", $("jd").value], ["notes", $("notes").value],
+  ].filter(([, v]) => v.trim()).map(([k, v]) => `<${k}>\n${v.trim()}\n</${k}>`).join("\n\n");
+
+  return `You are a real-time interview coach. The candidate is doing a live mock interview to practice. The interviewer's speech is transcribed by browser speech recognition, so expect missing punctuation, misheard words and run-on fragments: infer the intended question.
+
+Write the answer the candidate should say out loud, in the first person, as the candidate. Ground it in the candidate's context below: use their real employers, projects, numbers and stories. Never invent facts that contradict the context. If the context has no relevant example, write a strong answer anyway and mark specifics they must fill in like [your metric] or [project name].
+
+Format:
+- First line: **Gist:** one sentence with the core answer, so the candidate can start talking immediately.
+- Then the answer itself. Behavioral questions: STAR (Situation, Task, Action, Result), with the Result quantified where possible. Technical or conceptual questions: the direct answer first, then the reasoning and trade-offs. Coding questions: say the approach and complexity, then a fenced code block. Questions like "why us" or "do you have questions for me": tie the answer to the job description.
+- Length: ${LENGTH[$("length").value]}
+- Use a natural, confident spoken style with short sentences. No filler, no "Great question", no meta commentary about being an AI.
+- If the transcript holds several questions, answer the latest one, or all of them briefly if they belong together.
+${allowSkip ? `\nThe transcript can also catch the candidate's own voice or small talk. If the latest transcript contains no question or prompt the candidate needs to answer (for example it is the candidate answering, a greeting, or noise), reply with exactly SKIP and nothing else.\n` : ""}
+${ctx ? "Candidate context:\n\n" + ctx : "(The candidate has not provided context yet. Give strong general answers with [placeholders] for their specifics.)"}`;
+}
+
+function buildMessages(q) {
+  const msgs = [];
+  for (const h of history.filter((h) => !h.skipped && h.a).slice(-6)) {
+    msgs.push({ role: "user", content: `Interviewer: ${h.q}` });
+    msgs.push({ role: "assistant", content: h.a });
+  }
+  msgs.push({ role: "user", content: `Interviewer: ${q}` });
+  return msgs;
+}
+
+// ---------- tiny markdown renderer ----------
+function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function inline(s) {
+  return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+}
+function md(src) {
+  const out = []; const lines = src.split("\n"); let list = null, code = null, para = [];
+  const flushPara = () => { if (para.length) { out.push("<p>" + inline(para.join(" ")) + "</p>"); para = []; } };
+  const flushList = () => { if (list) { out.push(`<${list.t}>` + list.items.map((i) => "<li>" + inline(i) + "</li>").join("") + `</${list.t}>`); list = null; } };
+  for (const line of lines) {
+    if (code) { if (/^```/.test(line)) { out.push("<pre><code>" + esc(code.join("\n")) + "</code></pre>"); code = null; } else code.push(line); continue; }
+    if (/^```/.test(line)) { flushPara(); flushList(); code = []; continue; }
+    let m;
+    if ((m = line.match(/^\s*[-*•]\s+(.*)/))) { flushPara(); if (!list || list.t !== "ul") { flushList(); list = { t: "ul", items: [] }; } list.items.push(m[1]); continue; }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)/))) { flushPara(); if (!list || list.t !== "ol") { flushList(); list = { t: "ol", items: [] }; } list.items.push(m[1]); continue; }
+    if ((m = line.match(/^#{1,6}\s+(.*)/))) { flushPara(); flushList(); out.push("<h4>" + inline(m[1]) + "</h4>"); continue; }
+    if (!line.trim()) { flushPara(); flushList(); continue; }
+    flushList(); para.push(line.trim());
+  }
+  if (code) out.push("<pre><code>" + esc(code.join("\n")) + "</code></pre>");
+  flushPara(); flushList();
+  return out.join("");
+}
+
+// ---------- cards ----------
+function makeCard(q) {
+  const feed = $("feed");
+  feed.querySelector(".empty")?.remove();
+  feed.querySelectorAll(".card.latest").forEach((c) => c.classList.remove("latest"));
+  const card = document.createElement("div"); card.className = "card latest";
+  card.innerHTML = `<div class="q"><span class="t"></span><span class="meta"></span></div>
+    <div class="a"><span class="thinking">Thinking…</span></div>
+    <div class="tools"><button data-act="copy">Copy</button><button data-act="regen">Regenerate</button><button data-act="shorter">Shorter</button></div>`;
+  card.querySelector(".t").textContent = q;
+  card.querySelector(".meta").textContent = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  feed.prepend(card);
+  return card;
+}
+
+$("feed").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-act]"); if (!btn) return;
+  const card = btn.closest(".card"); const entry = card._entry; if (!entry) return;
+  if (btn.dataset.act === "copy") navigator.clipboard?.writeText(entry.a || "").catch(() => {});
+  if (btn.dataset.act === "regen") askClaude(entry.q, { card, entry });
+  if (btn.dataset.act === "shorter") askClaude(entry.q, { card, entry, extra: "Give a noticeably shorter, punchier version of the answer." });
+});
+
+// ---------- answering ----------
+function triggerAnswer({ auto = false, text } = {}) {
+  clearTimeout(silenceTimer);
+  const q = (text ?? (finalBuf + " " + interimBuf)).trim();
+  if (!q) return;
+  if (text === undefined) { finalBuf = ""; interimBuf = ""; renderTranscript(); }
+  askClaude(q, { allowSkip: auto && $("skipNonQ").checked });
+}
+
+async function askClaude(q, { card, entry, extra, allowSkip = false } = {}) {
+  const apiKey = $("apiKey").value.trim();
+  if (current) { current.controller.abort(); current = null; }
+
+  if (!entry) { entry = { q, a: "", skipped: false }; history.push(entry); }
+  if (!card) card = makeCard(q);
+  card._entry = entry;
+  const ans = card.querySelector(".a");
+
+  if (!apiKey) { ans.innerHTML = `<span class="err">Add your Anthropic API key in the left panel first.</span>`; return; }
+
+  ans.innerHTML = `<span class="thinking">Thinking…</span>`;
+  const controller = new AbortController();
+  current = { controller, card };
+  const model = $("model").value;
+  const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+
+  const messages = buildMessages(q);
+  // Regenerating: drop this entry's own previous answer from the history we send.
+  if (entry.a) {
+    const idx = messages.findIndex((m) => m.role === "assistant" && m.content === entry.a);
+    if (idx > 0) messages.splice(idx - 1, 2);
+  }
+  if (extra) messages[messages.length - 1].content += `\n\n(${extra})`;
+
+  const params = {
+    model,
+    max_tokens: 8000,
+    system: buildSystem(allowSkip),
+    messages,
+    output_config: { effort: $("effort").value },
+    cache_control: { type: "ephemeral" },
+  };
+  // Server-side refusal fallback (Opus / Sonnet only; Haiku has none).
+  if (model !== "claude-haiku-5-5") { params.betas = ["server-side-fallback-2026-07-01"]; params.fallbacks = "default"; }
+
+  const t0 = performance.now();
+  let text = "", firstToken = null;
+  try {
+    const stream = client.beta.messages.stream(params, { signal: controller.signal });
+    stream.on("text", (delta) => {
+      text += delta;
+      if (firstToken === null) firstToken = performance.now();
+      // Hold back output that might turn out to be "SKIP".
+      if (allowSkip && text.length < 6 && "SKIP".startsWith(text.trim())) return;
+      ans.innerHTML = md(text);
+    });
+    const final = await stream.finalMessage();
+    if (final.stop_reason === "refusal") {
+      ans.innerHTML = `<span class="err">Claude declined to answer this one. Try rephrasing the question.</span>`;
+      entry.a = ""; return;
+    }
+    if (allowSkip && text.trim() === "SKIP") {
+      entry.skipped = true; card.remove();
+      if (!$("feed").children.length) $("feed").innerHTML = `<div class="empty">Answers will appear here, newest first.</div>`;
+      else $("feed").firstElementChild?.classList.add("latest");
+      setStatus(listening ? (paused ? "Mic paused (you're talking)" : "Listening (skipped non-question)") : "Idle", listening ? (paused ? "paused" : "on") : "");
+      return;
+    }
+    entry.a = text; entry.skipped = false;
+    ans.innerHTML = md(text);
+    const meta = card.querySelector(".meta");
+    meta.textContent += ` · first words ${((firstToken - t0) / 1000).toFixed(1)}s`;
+  } catch (e) {
+    if (controller.signal.aborted) {
+      if (text) { entry.a = text; ans.innerHTML = md(text) + `<p class="thinking">(stopped)</p>`; }
+      else ans.innerHTML = `<span class="thinking">(stopped)</span>`;
+      return;
+    }
+    const status = e?.status;
+    const msg = status === 401 ? "Invalid API key."
+      : status === 429 ? "Rate limited. Wait a moment, then press Regenerate."
+      : status === 529 || status >= 500 ? "Anthropic API is overloaded. Press Regenerate."
+      : (e?.message || String(e));
+    ans.innerHTML = (text ? md(text) : "") + `<p class="err">${esc(msg)}</p>`;
+  } finally {
+    if (current?.controller === controller) current = null;
+  }
+}
+
+$("answerNowBtn").onclick = () => {
+  const typed = $("manualQ").value.trim();
+  if (typed) { $("manualQ").value = ""; triggerAnswer({ text: typed }); }
+  else triggerAnswer();
+};
+$("manualQ").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("answerNowBtn").click(); } });
+
+document.addEventListener("keydown", (e) => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName);
+  if (e.key === "Escape" && current) { current.controller.abort(); return; }
+  if (typing) return;
+  if (e.code === "Space") { e.preventDefault(); triggerAnswer(); }
+  else if (e.key === "m" || e.key === "M") togglePause();
+});
+
+$("clearBtn").onclick = () => {
+  if (current) current.controller.abort();
+  history.length = 0; finalBuf = ""; interimBuf = "";
+  $("feed").innerHTML = `<div class="empty">Answers will appear here, newest first.</div>`;
+  renderTranscript();
+};
+
+$("exportBtn").onclick = () => {
+  const body = history.filter((h) => !h.skipped).map((h) => `## Q: ${h.q}\n\n${h.a || "_(no answer)_"}\n`).join("\n");
+  const blob = new Blob([`# Mock interview, ${new Date().toLocaleString()}\n\n${body}`], { type: "text/markdown" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `mock-interview-${new Date().toISOString().slice(0, 10)}.md`; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+</script>
+</body>
+</html>
